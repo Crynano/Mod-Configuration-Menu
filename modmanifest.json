@@ -1,0 +1,12 @@
+{
+  "UniqueModName": "Mod Config Menu",
+  "Assemblies": [
+    "MCM.dll"
+  ],
+  "Dependencies": [],
+  "SteamTags":
+  [
+    "0.9",
+    "Utility"
+  ]
+}

@@ -1,0 +1,96 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <VersionPrefix>1.0.0</VersionPrefix>
+  </PropertyGroup>
+	<PropertyGroup>
+		<GAME_NAME>Quasimorph</GAME_NAME>
+		<SteamId>3469678797</SteamId>
+	</PropertyGroup>
+	<PropertyGroup>
+		<GAME_PATH>D:\SteamLibrary\steamapps\common\Quasimorph</GAME_PATH>
+		<WorkshopPath>$(GAME_PATH)\..\..\workshop\content\2059170\$(SteamId)\</WorkshopPath>
+		<ManagedPath>$(GAME_PATH)\$(GAME_NAME)_Data\Managed\</ManagedPath>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="Move To Root\**" />
+	  <EmbeddedResource Remove="Move To Root\**" />
+	  <None Remove="Move To Root\**" />
+	</ItemGroup>
+	<ItemGroup>
+		<Reference Include="Assembly-CSharp" publicize="true">
+			<HintPath>$(ManagedPath)Assembly-CSharp.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Unity.TextMeshPro">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+			<SpecificVersion>False</SpecificVersion>
+			<HintPath>$(ManagedPath)UnityEngine.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.AssetBundleModule">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+			<SpecificVersion>False</SpecificVersion>
+			<HintPath>$(ManagedPath)UnityEngine.CoreModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.InputLegacyModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+			<SpecificVersion>False</SpecificVersion>
+			<HintPath>$(ManagedPath)UnityEngine.InputLegacyModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.UI">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UI.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.UIElementsModule">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.UIModule">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+	</ItemGroup>
+	<PropertyGroup>
+	    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+		<PackageFolder>$(ProjectDir)../package/</PackageFolder>
+		<AssemblyName>MCM</AssemblyName>
+		<RootNamespace>ModConfigMenu</RootNamespace>
+
+	</PropertyGroup>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="@echo off&#xD;&#xA;set deployDir=&quot;$(WorkshopPath)&quot;&#xD;&#xA;&#xD;&#xA;xcopy /f /y &quot;../modmanifest.json&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;&#xD;&#xA;if '$(SteamId)'=='' (echo SteamId in project not set.  Aborting Workshop Deployment &amp;&amp; exit)&#xD;&#xA;echo deploying to %25deployDir%25&#xD;&#xA;&#xD;&#xA;mkdir &quot;$(WorkshopPath)&quot;&#xD;&#xA;&#xD;&#xA;xcopy /f /y &quot;$(ProjectDir)../media/thumbnail.png&quot; %25deployDir%25&#xD;&#xA;xcopy /f /y &quot;$(ProjectDir)../modmanifest.json&quot; %25deployDir%25&#xD;&#xA;xcopy /f /y   &quot;$(TargetDir)$(TargetName).*&quot; %25deployDir%25&#xD;&#xA;" />
+		<ItemGroup>
+			<WorkshopSourceFile Include="$(WorkshopPath)*.*" />
+			<PackageRemoveFiles Include="$(PackageFolder)$(TargetName)/*.pdb" />
+		</ItemGroup>
+	</Target>
+	<Target Condition="'$(SteamId)'!=''" Name="PostBuildPackage" AfterTargets="PostBuildEvent">
+		<ItemGroup>
+			<WorkshopSourceFile Include="$(WorkshopPath)*.*" />
+			<PackageRemoveFiles Include="$(PackageFolder)$(TargetName)/*.pdb" />
+		</ItemGroup>
+
+		<Message Text="---------- Creating Package: $(PackageFolder)$(TargetName)/*.pdb" Importance="high" />
+		<RemoveDir Directories="$(PackageFolder)" />
+		<Copy SourceFiles="@(WorkshopSourceFile)" DestinationFolder="$(PackageFolder)$(TargetName)"></Copy>
+		<Delete Files="@(PackageRemoveFiles)" />
+		<ZipDirectory SourceDirectory="$(PackageFolder)" DestinationFile="$(PackageFolder)../$(TargetName).zip" Overwrite="true" />
+	</Target>
+	<ItemGroup>
+	  <Reference Update="System">
+	    <Private>False</Private>
+	  </Reference>
+	</ItemGroup>
+</Project>
