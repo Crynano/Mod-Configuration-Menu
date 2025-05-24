@@ -25,8 +25,9 @@ namespace ModConfigMenu
             CancelButton.onClick.AddListener(UI.Hide<ColorPickerController>);
         }
 
-        public void ConfigureButtons(Action<Color> onSuccess)
+        public void ConfigureButtons(Color currentColor, Action<Color> onSuccess)
         {
+            colorPicker.color = currentColor;
             AcceptButton.onClick.RemoveAllListeners();
             AcceptButton.onClick.AddListener(() =>
             {

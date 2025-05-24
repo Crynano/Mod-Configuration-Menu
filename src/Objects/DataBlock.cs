@@ -1,6 +1,7 @@
 ﻿using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using ModConfigMenu.Services;
 
 namespace ModConfigMenu.Objects
 {
@@ -50,7 +51,13 @@ namespace ModConfigMenu.Objects
 
         public void ResetDefault()
         {
-            this.Value = GetDefault();
+            var defaultValue = GetDefault();
+            if (defaultValue == null)
+            {
+                UnityEngine.Debug.LogWarning($"Could not reset default for {Key}");
+                return;
+            }
+            this.Value = defaultValue;
         }
 
         #region Debug
@@ -97,6 +104,9 @@ namespace ModConfigMenu.Objects
         public void SetUnstoredValue<T>(T value)
         {
             if (value == null) return;
+#if DEBUG
+            UnityEngine.Debug.Log($"Setting unstored value {value} as {value.GetType()}");
+#endif
             this.UnstoredValue = value;
             OnValueChanged?.Invoke();
         }
@@ -126,14 +136,18 @@ namespace ModConfigMenu.Objects
         public object GetDefault()
         {
             Type valueType = Value.GetType();
-            object isGoodType = Convert.ChangeType(GetComment("default"), valueType);
-
-            if (isGoodType != null)
+            string defaultComment = GetComment("default");
+            object defaultValue = ConvertHelper.ConvertValue(defaultComment);
+#if DEBUG
+            UnityEngine.Debug.Log($"Looking for default.\n{Value} is {Value?.GetType()}\nDefault: {defaultValue} is {defaultValue?.GetType()}");
+#endif
+            if (defaultValue?.GetType() == valueType)
             {
-                return isGoodType;
+                return defaultValue;
+                //return Convert.ChangeType(defaultValue, valueType);
             }
 
-            UnityEngine.Debug.Log($"DataBlock {Key} does not have default value as {Value.GetType()}");
+            UnityEngine.Debug.Log($"DataBlock {Key} does not have default value as {valueType}");
             return null;
         }
 

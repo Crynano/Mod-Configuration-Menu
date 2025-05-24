@@ -1,4 +1,4 @@
-﻿using MGSC;
+﻿using MGSC; 
 using System;
 using TMPro;
 using UnityEngine;
@@ -34,7 +34,22 @@ namespace ModConfigMenu.Components
             captionText.text = caption;
             cancelButton.onClick.AddListener(delegate { cancelAction?.Invoke(); });
             acceptButton.onClick.AddListener(delegate { acceptAction?.Invoke(); });
-            discardButton.onClick.AddListener(delegate { discardAction?.Invoke(); });
+            if (discardAction == null)
+            {
+                discardButton.gameObject.SetActive(false);
+            }
+            else
+            {
+                discardButton.onClick.AddListener(delegate { discardAction?.Invoke(); });
+                discardButton.gameObject.SetActive(true);
+            }
+        }
+
+        public void OnEnable()
+        {
+            cancelButton.onClick.AddListener(UI.Hide<ChangeModConfirmationPanel>);
+            acceptButton.onClick.AddListener(UI.Hide<ChangeModConfirmationPanel>);
+            discardButton.onClick.AddListener(UI.Hide<ChangeModConfirmationPanel>);
         }
 
         public void OnDisable()

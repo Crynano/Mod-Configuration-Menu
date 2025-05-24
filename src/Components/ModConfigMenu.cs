@@ -1,12 +1,14 @@
 ﻿using System;
 using MGSC;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using ModConfigMenu.Components;
 using ModConfigMenu.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
 
 namespace ModConfigMenu
 {
@@ -104,27 +106,25 @@ namespace ModConfigMenu
 
         private void CreateButtonsForEveryMod()
         {
-            foreach (var item in ModConfigManager.ModsList)
+            foreach (var modName in ModConfigManager.ModsList)
             {
                 var buttonObject = GameObject.Instantiate(ModButtonPrefab, ModListRoot);
                 var objectButton = buttonObject.GetComponent<CommonButton>();
-                objectButton.ChangeLabel(item);
+                objectButton.ChangeLabel(modName);
                 objectButton.OnClick += delegate
                 {
 #if DEBUG
-                    Debug.Log($"Clicked button to load {item} config.");
+                    Debug.Log($"Clicked button to load {modName} config.");
 #endif
-                    ConfigData modConfig = ModConfigManager.GetModConfig(item);
-                    ModsRoot.TryGetValue(item, out Transform root);
+                    ConfigData modConfig = ModConfigManager.GetModConfig(modName);
+                    ModsRoot.TryGetValue(modName, out Transform root);
                     if (root != null)
                     {
                         SwitchMod(modConfig, root);
                     }
                     else
                     {
-                        var newRoot = BuildModConfig(modConfig);
-                        ModsRoot.Add(item, newRoot);
-                        SwitchMod(modConfig, newRoot);
+                        CreateNewMod(modName, modConfig);
                     }
                 };
             }
@@ -133,73 +133,36 @@ namespace ModConfigMenu
         private void ConfigureBoolButtonPrefab()
         {
             boolButtonPrefab = PrefabsRoot.Find("BoolConfig").gameObject;
-
             var boolToggle = boolButtonPrefab.transform.Find("Toggle").gameObject;
             boolToggle.AddComponent<OnClickSfx>();
             boolToggle.AddComponent<ToggleWrapper>();
-
-            var toolTip = boolButtonPrefab.transform.Find("Label").gameObject.AddComponent<HintTooltipHandler>();
-            //toolTip._selectedBorder = boolToggle.transform.Find("Hover").gameObject.GetComponent<Image>();
-            toolTip._rawValue = true;
-            toolTip.SetTag("");
+            boolButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
             boolButtonPrefab.SetActive(false);
         }
 
         // Some way of instantiating the boolButton and start its components?
         private void ConfigureColorButtonPrefab()
         {
-            UnityEngine.Debug.Log("Preparing color");
             colorButtonPrefab = PrefabsRoot.Find("ColourConfig").gameObject;
-
-            var toolTip = colorButtonPrefab.transform.Find("Label").gameObject.AddComponent<HintTooltipHandler>();
-            //toolTip._selectedBorder = colorButtonPrefab.transform.Find("Button").Find("Hover").gameObject.GetComponent<Image>();
-            toolTip._rawValue = true;
-            toolTip.SetTag("");
+            colorButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
             colorButtonPrefab.SetActive(false);
         }
 
         private void ConfigureRangeButtonPrefab()
         {
             rangeButtonPrefab = PrefabsRoot.Find("RangeConfig").gameObject;
-            // Label
-            // Slider (UI.Slider, MGSC.SliderWrapper)
-            // - Background
-            // - FillArea
-            // - - Fill
-            // - Handle Slide Area
-            // - - Handle
-            // - SliderVal (TextMeshProUGUI)
-            // - Hover
             var sliderObject = rangeButtonPrefab.transform.Find("Slider").gameObject;
             var sliderComponent = sliderObject.GetComponent<Slider>();
 
-            SliderWrapper mgscSliderComponent = null;
-            try
-            {
-                mgscSliderComponent = sliderObject.AddComponent<SliderWrapper>();
-            }
-            catch (NullReferenceException ex)
-            {
-                // Handled, when this component awakes, it throws an error.
-            }
+            SliderWrapper mgscSliderComponent = sliderObject.AddComponent<SliderWrapper>();
+            mgscSliderComponent._visibleMode = SliderWrapper.VisibleMode.WholeNumbers;
+            mgscSliderComponent._slider = sliderComponent;
+            mgscSliderComponent._sliderFillBar = sliderObject.transform.Find("Fill Area").Find("Fill").GetComponent<Image>();
+            mgscSliderComponent._valueText = sliderObject.transform.Find("SliderVal").GetComponent<TextMeshProUGUI>();
+            mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
+            mgscSliderComponent.Awake();
 
-            if (mgscSliderComponent != null)
-            {
-                mgscSliderComponent._visibleMode = SliderWrapper.VisibleMode.WholeNumbers;
-                mgscSliderComponent._slider = sliderComponent;
-                mgscSliderComponent._sliderFillBar =
-                    sliderObject.transform.Find("Fill Area").Find("Fill").GetComponent<Image>();
-                mgscSliderComponent._valueText =
-                    sliderObject.transform.Find("SliderVal").GetComponent<TextMeshProUGUI>();
-                mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
-                mgscSliderComponent.Awake();
-            }
-
-            var toolTip = rangeButtonPrefab.transform.Find("Label").gameObject.AddComponent<HintTooltipHandler>();
-            //toolTip._selectedBorder = sliderObject.transform.Find("Hover").gameObject.GetComponent<Image>();
-            toolTip._rawValue = true;
-            toolTip.SetTag("");
-
+            rangeButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
             rangeButtonPrefab.SetActive(false);
         }
 
@@ -212,13 +175,14 @@ namespace ModConfigMenu
             if (lastActiveMod != null && lastActiveMod.IsDirty)
             {
                 // Popup
+                ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
                 UI.Chain<ChangeModConfirmationPanel>().Show();
                 UI.Get<ChangeModConfirmationPanel>().Configure(
-                    "Unsaved Changes".ColorFirstLetter(Color.green),
+                    "Unsaved Changes".ColorFirstLetter(letterColor),
                     "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
                     SaveAndChangeMod,
                     DiscardChanges,
-                    UI.Hide<ChangeModConfirmationPanel>
+                    null
                 );
             }
             else
@@ -231,7 +195,6 @@ namespace ModConfigMenu
             {
                 SaveCurrentMod();
                 ChangeMod();
-                UI.Hide<ChangeModConfirmationPanel>();
             }
 
             void DiscardChanges()
@@ -239,7 +202,6 @@ namespace ModConfigMenu
                 DiscardCurrentModChanges();
                 DestroyDiscardedMod(lastActiveMod);
                 ChangeMod();
-                UI.Hide<ChangeModConfirmationPanel>();
             }
 
             void DestroyDiscardedMod(ConfigData oldMod)
@@ -263,17 +225,39 @@ namespace ModConfigMenu
             }
         }
 
-        private void SaveCurrentMod()
+        private void CreateNewMod(string modName, ConfigData modConfig)
         {
-            if (lastActiveMod == null) return;
-            lastActiveMod?.Save();
-            _saveButton?.gameObject.SetActive(false);
+            var newRoot = BuildModConfig(modConfig);
+            ModsRoot.Add(modName, newRoot);
+            SwitchMod(modConfig, newRoot);
+        }
+
+        private void ReloadModRoot()
+        {
+            DiscardCurrentModChanges();
+            string currentModName = lastActiveMod.ModName;
+            lastActiveModRoot?.gameObject.SetActive(false);
+            ModsRoot.Remove(lastActiveMod.ModName);
+            Destroy(lastActiveModRoot?.gameObject);
+            ConfigData modConfig = ModConfigManager.GetModConfig(currentModName);
+            modConfig.ResetAllToDefault();
+            CreateNewMod(currentModName, modConfig);
+            SaveCurrentMod();
         }
 
         private void ResetCurrentMod()
         {
             if (lastActiveMod == null) return;
-            lastActiveMod?.ResetAllToDefault();
+
+            ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
+            UI.Chain<ChangeModConfirmationPanel>().Show();
+            UI.Get<ChangeModConfirmationPanel>().Configure(
+                "Reset all to default.".ColorFirstLetter(letterColor),
+                "Are you sure you want to reset all values to default?",
+                ReloadModRoot,
+                null,
+                null
+            );
         }
 
         private void DiscardCurrentModChanges()
@@ -281,6 +265,12 @@ namespace ModConfigMenu
             if (lastActiveMod == null) return;
             lastActiveMod?.Discard();
             // Should discard all changes to the UI too.
+            _saveButton?.gameObject.SetActive(false);
+        }
+        private void SaveCurrentMod()
+        {
+            if (lastActiveMod == null) return;
+            lastActiveMod?.Save();
             _saveButton?.gameObject.SetActive(false);
         }
 
@@ -336,7 +326,7 @@ namespace ModConfigMenu
                         objectSlider.value = (float)intValue;
                         objectSlider.onValueChanged.AddListener(delegate (float newVal)
                         {
-                            categoryVariables.SetUnstoredValue(newVal);
+                            categoryVariables.SetUnstoredValue((int)newVal);
                         });
                         objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = intValue.ToString(CultureInfo.CurrentCulture);
                     }
@@ -348,7 +338,10 @@ namespace ModConfigMenu
                         objectSlider.minValue = categoryVariables.GetMin();
                         objectSlider.maxValue = categoryVariables.GetMax();
                         objectSlider.value = floatValue;
-                        objectSlider.onValueChanged.AddListener(categoryVariables.SetUnstoredValue);
+                        objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                        {
+                            categoryVariables.SetUnstoredValue(newVal);
+                        });
                         objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = floatValue.ToString(CultureInfo.CurrentCulture);
                     }
                     else if (categoryVariables.GetValue() is double doubleValue)
@@ -371,7 +364,8 @@ namespace ModConfigMenu
                         objectButton.onClick.AddListener(() =>
                         {
                             UI.Chain<ColorPickerController>().Show();
-                            UI.Get<ColorPickerController>().ConfigureButtons(delegate (Color selectedColor)
+                            var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
+                            UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
                             {
                                 categoryVariables.SetUnstoredValue(selectedColor);
                                 objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
@@ -387,7 +381,8 @@ namespace ModConfigMenu
                         objectButton.onClick.AddListener(() =>
                         {
                             UI.Chain<ColorPickerController>().Show();
-                            UI.Get<ColorPickerController>().ConfigureButtons(delegate (Color selectedColor)
+                            var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
+                            UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
                             {
                                 categoryVariables.SetUnstoredValue($"\"#{ColorUtility.ToHtmlStringRGB(selectedColor)}\"");
                                 objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
@@ -407,7 +402,7 @@ namespace ModConfigMenu
                     // HURRRRRR
 
                     // Visual tooltip to aid in property description
-                    instObj.GetComponentInChildren<HintTooltipHandler>()?.SetTag(categoryVariables.GetDescription());
+                    instObj.GetComponentInChildren<GenericHoverTooltip>(true)?.Initialize(categoryVariables.GetDescription());
 
                     // Label for each object
                     var label = categoryVariables.GetLabel();

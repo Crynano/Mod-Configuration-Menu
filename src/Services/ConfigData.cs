@@ -75,29 +75,6 @@ namespace ModConfigMenu
                 }
                 else if (trimmedLine.StartsWith("#"))
                 {
-                    //string[] keyValue = trimmedLine.Split(new[] { ' ' });
-                    ////if (numberSplit.Length == 2)
-                    ////{
-                    ////    string key = numberSplit[0].Trim().Replace("#", string.Empty);
-                    ////    string value = numberSplit[1];
-                    ////    currentBlock.AddProperty(key, value);
-                    ////}
-                    //string key = keyValue[0].Trim().Remove(0, 1);
-                    //string value = keyValue[1].Trim();
-
-                    //if (keyValue.Length == 2)
-                    //{
-                    //    currentBlock.AddProperty(key, value);
-                    //}
-                    //else if (value.StartsWith("\""))
-                    //{
-                    //    value = 
-                    //    currentBlock.AddProperty(key, value);
-                    //}
-                    //else
-                    //{
-                    //    currentBlock.AddComment(trimmedLine.Remove(0, 1));
-                    //}
                     currentBlock.AddComment(trimmedLine.Remove(0, 1));
                 }
 
@@ -116,55 +93,28 @@ namespace ModConfigMenu
                     string[] keyValue = trimmedLine.Split(new[] { '=' }, 2);
                     string key = keyValue[0].Trim();
                     string value = keyValue[1].Trim();
-                    var convertedValue = ConvertValue(value, currentBlock);
+
+                    // Convert and assign
+                    // This could be a good step to check for forced Type-castings
+                    var convertedValue = ConvertValue(value);
                     currentBlock.Value = convertedValue;
                     currentBlock.Key = key;
-                    data[currentSection].Add(currentBlock);
+
+                    // Set
                     currentBlock.OnValueChanged += DataBlockChanged;
+
+                    // Store
+                    data[currentSection].Add(currentBlock);
+
+                    // Reset
                     currentBlock = new DataBlock();
                 }
             }
         }
 
-        private object ConvertValue(string value, DataBlock currentDataBlock)
+        private object ConvertValue(string value)
         {
-            // First check if there is an implicit conversion in properties
-            //var typeProp = currentDataBlock.GetTypeProp();
-            //if (!string.IsNullOrEmpty(typeProp))
-            //{
-            //    // Cast to that Type and return back!
-            //    Type type = Type.GetType(typeProp);
-            //    if (type != null)
-            //    {
-            //        UnityEngine.Debug.Log($"Chosen dynamic type for {value} is: {type}");
-            //        var returnVar = Convert.ChangeType(value, type);
-            //        if (returnVar != null) return returnVar;
-            //    }
-            //}
-
-            // Try to convert to int, double, or leave as string
-            if (int.TryParse(value, out int intValue))
-            {
-                return intValue;
-            }
-
-            if (float.TryParse(value, out float floatValue))
-            {
-                return floatValue;
-            }
-
-            if (bool.TryParse(value, out bool boolValue))
-            {
-                return boolValue;
-            }
-
-            // Color parse
-            if (ColorUtility.TryParseHtmlString(value.Replace("\"", string.Empty), out Color colorParsed))
-            {
-                return colorParsed;
-            }
-
-            return value;
+            return ConvertHelper.ConvertValue(value);
         }
 
         public void Debug()
