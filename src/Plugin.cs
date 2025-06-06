@@ -36,8 +36,9 @@ namespace ModConfigMenu
             //var captionGO = myButtonInstance.Find("Caption");
             //captionGO.GetComponent<TextMeshProUGUI>().text = "MODS".ColorFirstLetter(Color.yellow);
 
+            LocalizationHelper.AddKeyToAllDictionaries("ui.mods.desc", "MODS");
             var mainMenuModsCommonButton = myButtonInstance.GetComponent<CommonButton>();
-            mainMenuModsCommonButton.ChangeLabel("MODS");
+            mainMenuModsCommonButton.ChangeLabel("ui.mods.desc");
             mainMenuModsCommonButton.OnClick -= mainMenu.StartGameBtnOnClick;
             mainMenuModsCommonButton.OnClick += delegate (CommonButton button, int amount)
             {

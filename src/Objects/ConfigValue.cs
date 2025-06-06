@@ -1,11 +1,16 @@
 ﻿using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using MGSC;
 using ModConfigMenu.Services;
+using System.Xml.Linq;
 
 namespace ModConfigMenu.Objects
 {
-    public class DataBlock
+    /// <summary>
+    /// Conserves a config value
+    /// </summary>
+    public class ConfigValue
     {
         /// <summary>
         /// The name of the property
@@ -27,7 +32,13 @@ namespace ModConfigMenu.Objects
         /// Storage for all comments in string format. Must be parsed before used.
         /// This contains full comments with no parsing.
         /// </summary>
-        public List<string> Comments = new List<string>();
+        //public List<string> Comments = new List<string>();
+        
+        /// <summary>
+        /// Storage for all the comments converted to properties, which facilitates the search for data.
+        /// Currently used properties are: min, max, default, type, tooltip, label.
+        /// </summary>
+        public List<Property> Properties = new List<Property>();
 
         /// <summary>
         /// Properties are two-split values that contain desired values.
@@ -44,9 +55,18 @@ namespace ModConfigMenu.Objects
 
         public Action OnValueChanged;
 
-        public DataBlock()
+        public ConfigValue()
         {
+            
+        }
 
+        public ConfigValue(string key, object value, List<Property> properties, string header)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Properties = new List<Property>();
+            this.Properties.AddRange(properties);
+            this.Header = header;
         }
 
         public void ResetDefault()
@@ -68,17 +88,13 @@ namespace ModConfigMenu.Objects
 
             msg += $"DataBlock Debug:\n";
             msg += $"Header: {Header}\n";
-            msg += $"Comments:\n";
+            msg += $"Properties:\n";
 
-            foreach (var singleComment in Comments)
+            foreach (var singleComment in Properties)
             {
-                msg += $"{singleComment}.\n";
+                msg += $"{singleComment.GetPrintable()}\n";
             }
-            //msg += "Properties:\n";
-            //foreach (var singleProp in Properties)
-            //{
-            //    msg += $"{singleProp.Key} - {singleProp.Value}.\n";
-            //}
+
             msg += $"Value: {Value} as {Value.GetType()}\n";
             UnityEngine.Debug.Log(msg);
         }
@@ -132,16 +148,14 @@ namespace ModConfigMenu.Objects
 
         #region Comments
 
-        [CanBeNull]
         public object GetDefault()
         {
             Type valueType = Value.GetType();
-            string defaultComment = GetComment("default");
-            object defaultValue = ConvertHelper.ConvertValue(defaultComment);
+            var defaultValue = GetPropertyValue("default");
 #if DEBUG
             UnityEngine.Debug.Log($"Looking for default.\n{Value} is {Value?.GetType()}\nDefault: {defaultValue} is {defaultValue?.GetType()}");
 #endif
-            if (defaultValue?.GetType() == valueType)
+            if (defaultValue.GetType() == valueType)
             {
                 return defaultValue;
                 //return Convert.ChangeType(defaultValue, valueType);
@@ -153,67 +167,89 @@ namespace ModConfigMenu.Objects
 
         public float GetMax()
         {
-            bool validResult = float.TryParse(GetComment("max"), out var result);
-            if (validResult)
+            var validResult = GetPropertyValue("max");
+            if (validResult is float floatValue)
             {
-                return result;
+                return floatValue;
+            }
+            else if( validResult is int intResult)
+            {
+                return (float)intResult;
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"max\" value as float");
+                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"max\" value as float nor int");
                 return 1f;
             }
         }
 
         public float GetMin()
         {
-            bool validResult = float.TryParse(GetComment("min"), out var result);
-            if (validResult)
+            var validResult = GetPropertyValue("min");
+            if (validResult is float floatValue)
             {
-                return result;
+                return floatValue;
+            }
+            else if (validResult is int intResult)
+            {
+                return (float)intResult;
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"min\" value as float");
+                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"min\" value as float nor int");
                 return 1f;
             }
         }
 
         public string GetTypeProp()
         {
-            string validResult = GetComment("type");
-            if (!string.IsNullOrEmpty(validResult))
+            var validResult = GetPropertyValue("type");
+            if (validResult is string typeProp && !string.IsNullOrEmpty(typeProp))
             {
-                return validResult;
+                return typeProp;
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"{validResult}\".");
+                UnityEngine.Debug.Log($"DataBlock {Key} does not have a Type cast.");
                 return string.Empty;
             }
+        }
+
+        public List<string> GetDropdownOptions()
+        {
+            List<string> returnVal = new List<string>();
+            foreach (var comment in Properties)
+            {
+                if (int.TryParse(comment.Key, out int result))
+                {
+                    // Heavy? Seems like...
+                    UnityEngine.Debug.Log($"Dropdown option for {comment.Key} is {comment.Value}");
+                    returnVal.Add(comment.Value as string);
+                }
+            }
+            return returnVal;
         }
 
         public string GetLabel()
         {
-            string validResult = GetComment("label");
-            if (!string.IsNullOrEmpty(validResult))
+            var validResult = GetPropertyValue("label");
+            if (validResult is string labelProp && !string.IsNullOrEmpty(labelProp))
             {
-                return validResult;
+                return labelProp;
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"{validResult}\".");
+                UnityEngine.Debug.Log($"DataBlock {Key} does not have a label.");
                 return string.Empty;
             }
         }
 
-        public string GetDescription()
+        public string GetTooltip()
         {
-            string validResult = GetComment("tooltip");
-            //UnityEngine.Debug.Log($"GETTING {validResult} AS DESCRIPTION FOR {Key}");
-            if (!string.IsNullOrEmpty(validResult))
+            var validResult = GetPropertyValue("tooltip");
+            if (validResult is string tooltip && !string.IsNullOrEmpty(tooltip))
             {
-                return validResult;
+                return tooltip;
             }
             else
             {
@@ -222,17 +258,46 @@ namespace ModConfigMenu.Objects
             }
         }
 
-        public void AddComment(string comment)
-        {
-            if (string.IsNullOrEmpty(comment)) return;
+        //public void AddComment(string comment)
+        //{
+        //    if (string.IsNullOrEmpty(comment)) return;
 
-            Comments.Add(comment);
+        //    Comments.Add(comment);
+        //}
+        
+        public void AddProperty(string untrimmedLine)
+        {
+            if (string.IsNullOrEmpty(untrimmedLine))
+            {
+                return;
+            }
+            // Create key and value.
+            var trimmedValues = untrimmedLine.Split(new[] { ' ' }, 2);
+            string key = trimmedValues[0].Replace("#", string.Empty);
+            var value = ConvertHelper.ConvertValue(trimmedValues[1]);
+            Property newProp = new Property(key, value);
+            Properties.Add(newProp);
         }
 
-        public string GetComment(string start)
+        //public string GetComment(string start)
+        //{
+        //    return Comments.Find(x => x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))?.Replace(start, string.Empty).Trim() ?? string.Empty;
+        //}
+
+        public Property GetProperty(string name)
         {
-            return Comments.Find(x => x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))?.Replace(start, string.Empty).Trim() ?? string.Empty;
+            return Properties.Find(x => x.Key == name);
         }
+
+        public object GetPropertyValue(string name)
+        {
+            return GetProperty(name).Value;
+        }
+
+        //public T GetPropertyValue<T>(string name)
+        //{
+        //    return GetProperty(name).Value as T;
+        //}
 
         //public void AddProperty(string key, string value)
         //{
@@ -248,22 +313,22 @@ namespace ModConfigMenu.Objects
         //    AddProperty(entry.Key, entry.Value);
         //}
 
-        [CanBeNull]
+        //[CanBeNull]
         //public string GetProperty(string key)
         //{
         //    Properties.TryGetValue(key, out string value);
         //    return value;
         //}
 
-        public string GetComment(int index)
-        {
-            return Comments.Count < index ? string.Empty : Comments[index];
-        }
+        //public string GetComment(int index)
+        //{
+        //    return Comments.Count < index ? string.Empty : Comments[index];
+        //}
 
-        public List<string> GetComments()
-        {
-            return Comments;
-        }
+        //public List<string> GetComments()
+        //{
+        //    return Comments;
+        //}
 
         #endregion
     }

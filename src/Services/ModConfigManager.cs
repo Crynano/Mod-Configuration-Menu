@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ModConfigMenu.Objects;
 using UnityEngine;
 
 namespace ModConfigMenu
@@ -30,35 +31,35 @@ namespace ModConfigMenu
         //    }
         //}
 
-        /// <summary>
-        /// Loads into memory a new mod config.
-        /// </summary>
-        /// <param name="modName">Should be the same as the config folder name</param>
-        /// <param name="modOnConfigSaved">Code that will be Invoked when any parameter from the config is changed.</param>
-        public static void LoadModData(string modName, Action<Dictionary<string, object>> modOnConfigSaved)
-        {
-            var finalPath = Plugin.AllModsConfigPath;
-            var fileName = Directory.GetDirectories(finalPath).FirstOrDefault(x => x.EndsWith(modName));
+//        /// <summary>
+//        /// Loads into memory a new mod config.
+//        /// </summary>
+//        /// <param name="modName">Should be the same as the config folder name</param>
+//        /// <param name="modOnConfigSaved">Code that will be Invoked when any parameter from the config is changed.</param>
+//        public static void LoadModData(string modName, Action<Dictionary<string, object>> modOnConfigSaved)
+//        {
+//            var finalPath = Plugin.AllModsConfigPath;
+//            var fileName = Directory.GetDirectories(finalPath).FirstOrDefault(x => x.EndsWith(modName));
 
-            Debug.Log($"Filename for {modName} is {fileName}");
+//            Debug.Log($"Filename for {modName} is {fileName}");
 
-            if (string.IsNullOrEmpty(fileName)) return;
+//            if (string.IsNullOrEmpty(fileName)) return;
 
-            DirectoryInfo directoryInfo = new DirectoryInfo(fileName);
-            FileInfo[] file = directoryInfo.GetFiles("*.ini");
-            if (file.Length <= 0)
-            {
-                Debug.Log($"No config found for mod: \"{modName}\"");
-                return;
-            }
-            ConfigData modConfigData = new ConfigData(modName, file[0].FullName);
-            modConfigData.Parse();
-#if DEBUG
-            modConfigData.Debug();
-#endif
-            allModsConfigData.Add(modName, modConfigData);
-            modConfigData.OnConfigSaved += modOnConfigSaved;
-        }
+//            DirectoryInfo directoryInfo = new DirectoryInfo(fileName);
+//            FileInfo[] file = directoryInfo.GetFiles("*.ini");
+//            if (file.Length <= 0)
+//            {
+//                Debug.Log($"No config found for mod: \"{modName}\"");
+//                return;
+//            }
+//            ConfigData modConfigData = new ConfigData(modName, file[0].FullName);
+//            modConfigData.Parse();
+//#if DEBUG
+//            modConfigData.Debug();
+//#endif
+//            allModsConfigData.Add(modName, modConfigData);
+//            modConfigData.OnConfigSaved += modOnConfigSaved;
+//        }
 
         public static void LoadModData(string modName, string filePath, Action<Dictionary<string, object>> modOnConfigSaved)
         {
@@ -79,6 +80,32 @@ namespace ModConfigMenu
 #endif
             allModsConfigData.Add(modName, modConfigData);
             modConfigData.OnConfigSaved += modOnConfigSaved;
+        }
+
+        /// <summary>
+        /// This one loads straight from modder.
+        /// </summary>
+        /// <param name="modName"></param>
+        /// <param name="filePath"></param>
+        /// <param name="modOnConfigSaved"></param>
+        public static bool LoadModData(string modName, List<ConfigValue> configData, Action<Dictionary<string, object>> modOnConfigSaved, bool debug = false)
+        {
+            if (debug)
+                Debug.Log($"{modName} is being registered with data-block list.");
+
+            if (configData == null || configData.Count <= 0)
+            {
+                Debug.LogError($"MCM ERROR: ConfigData for Mod \"{modName}\" is null or empty.");
+                return false;
+            }
+
+            ConfigData modConfigData = new ConfigData(modName, configData);
+#if DEBUG
+            modConfigData.Debug();
+#endif
+            allModsConfigData.Add(modName, modConfigData);
+            modConfigData.OnConfigSaved += modOnConfigSaved;
+            return true;
         }
 
         public static ConfigData GetModConfig(string modName)

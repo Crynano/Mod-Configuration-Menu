@@ -24,6 +24,12 @@
 			<HintPath>$(ManagedPath)Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
+		<Reference Include="Rewired_Core">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Rewired_Core.dll</HintPath>
+		</Reference>
+		<Reference Include="Rewired_Windows">
+		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Rewired_Windows.dll</HintPath>
+		</Reference>
 		<Reference Include="Unity.TextMeshPro">
 		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Unity.TextMeshPro.dll</HintPath>
 		</Reference>

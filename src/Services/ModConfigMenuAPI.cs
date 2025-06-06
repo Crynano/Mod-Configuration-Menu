@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ModConfigMenu.Objects;
 
 namespace ModConfigMenu
 {
@@ -25,6 +26,17 @@ namespace ModConfigMenu
         public static void RegisterModConfig(string modName, string configFilePath, Action<Dictionary<string, object>> onConfigSaved)
         {
             ModConfigManager.LoadModData(modName, configFilePath, onConfigSaved);
+        }
+
+        /// <summary>
+        /// Register a mod to allow MCM to configure it via UI.
+        /// </summary>
+        /// <param name="modName">The label for your mod. Used to display a beautified name for your mod in the UI.</param>
+        /// <param name="configData">Your mod data, passing a list of ConfigValues. A configValue is one configurable parameter from your mod.</param>
+        /// <param name="onConfigSaved">This delegate will be executed every time your mod config is saved in-game. It will include all properties in your modconfig, indexed by the same name you configured in configData.</param>
+        public static void RegisterModConfig(string modName, List<ConfigValue> configData, Action<Dictionary<string, object>> onConfigSaved)
+        {
+            ModConfigManager.LoadModData(modName, configData, onConfigSaved);
         }
 
         /// <summary>

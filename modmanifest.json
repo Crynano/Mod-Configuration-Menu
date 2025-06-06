@@ -4,8 +4,8 @@
     "MCM.dll"
   ],
   "Dependencies": [],
-  "SteamTags":
-  [
+  "SteamTags": [
+    "0.9.1",
     "0.9",
     "Utility"
   ]

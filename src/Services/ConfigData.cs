@@ -16,7 +16,8 @@ namespace ModConfigMenu
 
         private string McmFilepath => FileHandler.GetModControlledFilename(filePath);
 
-        private readonly Dictionary<string, List<DataBlock>> data;
+        private List<ConfigValue> data;
+
         public bool IsDirty { get; private set; } = false;
 
         public Action OnConfigChanged;
@@ -32,32 +33,93 @@ namespace ModConfigMenu
 
             this.ModName = modName;
             this.filePath = filePath;
-            this.data = new Dictionary<string, List<DataBlock>>();
+            this.data = new List<ConfigValue>();
+        }
+
+        public ConfigData(string modName, List<ConfigValue> userData)
+        {
+            this.ModName = modName;
+            this.data = userData;
+            // This should auto-parse with a different method.
+            // It would also try to get the mcmData even if user still inputted data. The compare both.
+            LoadUser();
+        }
+
+        private void LoadUser()
+        {
+            // Import MCM config
+            // Import Original config.
+            // If MCM config exists, then compare it to original.
+            List<ConfigValue> mcmData = new List<ConfigValue>();
+
+            if (File.Exists(McmFilepath))
+            {
+                UnityEngine.Debug.Log("Loading mcm data");
+                mcmData = ParseFile(McmFilepath);
+            }
+
+            // Data stored is a mix of the two
+            if (mcmData.Count > 0 && data.Count > 0)
+            {
+                UnityEngine.Debug.Log("Trying to update mod data");
+                this.data = UpdateData(mcmData, data);
+            }
+            else if (mcmData.Count > 0)
+            {
+                UnityEngine.Debug.Log("Error updating, only loading mcm data");
+                this.data = mcmData;
+            }
         }
 
         public void Parse()
         {
-            string selectedFilePath = string.Empty;
+            // Import MCM config
+            // Import Original config.
+            // If MCM config exists, then compare it to original.
+            List<ConfigValue> mcmData = new List<ConfigValue>();
+            List<ConfigValue> originalData = new List<ConfigValue>();
 
             if (File.Exists(McmFilepath))
             {
-                selectedFilePath = McmFilepath;
+                UnityEngine.Debug.Log("Loading mcm data");
+                mcmData = ParseFile(McmFilepath);
             }
-            else if (File.Exists(filePath))
+
+            if (File.Exists(filePath))
             {
-                selectedFilePath = filePath;
+                UnityEngine.Debug.Log("Loading filepath data");
+                originalData = ParseFile(filePath);
+            }
+
+            // Data stored is a mix of the two
+            if (mcmData.Count > 0 && originalData.Count > 0)
+            {
+                UnityEngine.Debug.Log("Trying to update mod data");
+                this.data = UpdateData(mcmData, originalData);
+            }
+            else if (mcmData.Count > 0)
+            {
+                UnityEngine.Debug.Log("Error updating, only loading mcm data");
+                this.data = mcmData;
+            }
+            else if (originalData.Count > 0)
+            {
+                UnityEngine.Debug.Log("Error updating, only loading original data");
+                this.data = originalData;
             }
             else
             {
-                throw new FileNotFoundException($"The specified config file at \"{selectedFilePath}\" does not exist.");
+                UnityEngine.Debug.LogError("NO DATA HAS BEEN LOADED FOR A MOD????");
             }
+        }
 
-            // If a _mcm config file exists in the source, use that.
+        private List<ConfigValue> ParseFile(string filepath)
+        {
+            List<ConfigValue> localData = new List<ConfigValue>();
+            string[] lines = File.ReadAllLines(filepath);
+            string currentSection = string.Empty;
 
-            string[] lines = File.ReadAllLines(selectedFilePath);
-            string currentSection = null;
-
-            DataBlock currentBlock = new DataBlock();
+            ConfigValue currentBlock = new ConfigValue();
 
             foreach (string line in lines)
             {
@@ -69,25 +131,20 @@ namespace ModConfigMenu
                     continue;
                 }
 
-                if (trimmedLine.StartsWith("##"))
+                if (trimmedLine.StartsWith("#"))
                 {
-                    currentBlock.AddComment(trimmedLine);
-                }
-                else if (trimmedLine.StartsWith("#"))
-                {
-                    currentBlock.AddComment(trimmedLine.Remove(0, 1));
-                }
-
-                if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
+                    currentBlock.AddProperty(trimmedLine);
+                } 
+                else if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
                 {
                     // Section header
                     currentSection = trimmedLine.Trim('[', ']');
-                    if (!data.ContainsKey(currentSection))
-                    {
-                        data[currentSection] = new List<DataBlock>();
-                    }
+                    //if (!localData.ContainsKey(currentSection))
+                    //{
+                    //    localData[currentSection] = new List<DataBlock>();
+                    //}
                 }
-                else if (currentSection != null && trimmedLine.Contains('='))
+                else if (trimmedLine.Contains('='))
                 {
                     // Key-value pair
                     string[] keyValue = trimmedLine.Split(new[] { '=' }, 2);
@@ -99,17 +156,42 @@ namespace ModConfigMenu
                     var convertedValue = ConvertValue(value);
                     currentBlock.Value = convertedValue;
                     currentBlock.Key = key;
+                    currentBlock.Header = currentSection;
 
                     // Set
                     currentBlock.OnValueChanged += DataBlockChanged;
 
                     // Store
-                    data[currentSection].Add(currentBlock);
+                    //localData[currentSection].Add(currentBlock);
+                    localData.Add(currentBlock);
 
                     // Reset
-                    currentBlock = new DataBlock();
+                    currentBlock = new ConfigValue();
                 }
             }
+
+            return localData;
+        }
+
+        private List<ConfigValue> UpdateData(List<ConfigValue> userData, List<ConfigValue> originalModData)
+        {
+            // For each value of the original, get the value in the userData. Otherwise, keep it default.
+            // If a value is in the userdata, just ignore that.
+            foreach (var dataBlock in originalModData)
+            {
+                // Find in userData-block
+                var foundUserDatablock = userData.Find(x => x.Key.Equals(dataBlock.Key));
+                // If the config already exists, copy the user value.
+                if (foundUserDatablock != null)
+                {
+#if DEBUG
+                    UnityEngine.Debug.Log($"Found a user datablock with ID: {foundUserDatablock.Key} with value {foundUserDatablock.Value} against the original {dataBlock.Value}");
+#endif
+                    dataBlock.Value = foundUserDatablock.Value;
+                }
+            }
+
+            return originalModData;
         }
 
         private object ConvertValue(string value)
@@ -119,14 +201,9 @@ namespace ModConfigMenu
 
         public void Debug()
         {
-            foreach (var headerKeyValue in data)
+            foreach (var variableList in data)
             {
-                UnityEngine.Debug.Log($"Debugging {headerKeyValue.Key}");
-                foreach (var variableList in headerKeyValue.Value)
-                {
-                    //UnityEngine.Debug.Log($"{variableList.Key} has {variableList.Value} of {variableList.Value.GetType()}");
-                    variableList.Debug();
-                }
+                variableList.Debug();
             }
         }
 
@@ -135,33 +212,39 @@ namespace ModConfigMenu
             // Here we can return a new text file that can be printed to disk
             string fileText = "";
             DateTime startTime = DateTime.Now;
+            string currentHeader = string.Empty;
 
-            foreach (var headerData in data)
+            foreach (var singleDataBlock in data)
             {
-                fileText += $"[{headerData.Key}]\n";
-                foreach (var singleDataBlock in headerData.Value)
+                // Print Comments first.
+                if (!singleDataBlock.Header.Equals(currentHeader))
                 {
-                    // Print Comments first.
-                    foreach (var singleComment in singleDataBlock.Comments)
-                    {
-                        fileText += $"#{singleComment}\n";
-                    }
-
-                    // Print Properties later. Even tho the description is a property.
-                    //foreach (var singleProp in singleDataBlock.Properties)
-                    //{
-                    //    fileText += $"#{singleProp.Key} {singleProp.Value}\n";
-                    //}
-                    
-                    // Maybe we should not the data RAW!
-                    // if its a color, treat it.
-                    object correctedValue = singleDataBlock.Value;
-                    if (singleDataBlock.Value is Color color)
-                        correctedValue = ColorHelper.GetIniColor(color);
-
-                    fileText += $"{singleDataBlock.Key} = {correctedValue}\n\n";
+                    currentHeader = singleDataBlock.Header;
+                    fileText += $"[{currentHeader}]\n";
                 }
+
+                foreach (var singleComment in singleDataBlock.Properties)
+                {
+                    fileText += $"#{singleComment.GetPrintable()}\n";
+                }
+
+                // Print Properties later. Even tho the description is a property.
+                //foreach (var singleProp in singleDataBlock.Properties)
+                //{
+                //    fileText += $"#{singleProp.Key} {singleProp.Value}\n";
+                //}
+
+                // Maybe we should not the data RAW!
+                // if its a color, treat it.
+                object correctedValue = singleDataBlock.Value;
+                if (singleDataBlock.Value is Color color)
+                {
+                    correctedValue = ColorHelper.GetIniColor(color);
+                }
+
+                fileText += $"{singleDataBlock.Key} = {correctedValue}\n\n";
             }
+
 
             UnityEngine.Debug.Log($"{(DateTime.Now - startTime).TotalSeconds:0.0000}");
             return fileText;
@@ -169,7 +252,10 @@ namespace ModConfigMenu
 
         public void ResetAllToDefault()
         {
-            GetAllDataBlocks().ForEach(x => x.ResetDefault());
+            foreach (var item in GetData())
+            {
+                item.ResetDefault();
+            }
         }
 
         internal void DataBlockChanged()
@@ -211,7 +297,7 @@ namespace ModConfigMenu
 
         private void SaveDataBlocks()
         {
-            foreach (var singleDataBlock in GetAllDataBlocks())
+            foreach (var singleDataBlock in GetData())
             {
                 singleDataBlock.Save();
             }
@@ -219,7 +305,7 @@ namespace ModConfigMenu
 
         private void DiscardDataBlocks()
         {
-            foreach (var singleDataBlock in GetAllDataBlocks())
+            foreach (var singleDataBlock in GetData())
             {
                 singleDataBlock.ClearUnstored();
             }
@@ -228,24 +314,14 @@ namespace ModConfigMenu
         private Dictionary<string, object> GetAllValues()
         {
             Dictionary<string, object> result = new Dictionary<string, object>();
-            foreach (var singleDataBlock in GetAllDataBlocks())
+            foreach (var singleDataBlock in GetData())
             {
                 result.Add(singleDataBlock.Key, singleDataBlock.Value);
             }
             return result;
         }
 
-        private List<DataBlock> GetAllDataBlocks()
-        {
-            List<DataBlock> result = new List<DataBlock>();
-            foreach (var VARIABLE in data)
-            {
-                result.AddRange(VARIABLE.Value);
-            }
-            return result;
-        }
-
-        public Dictionary<string, List<DataBlock>> GetData()
+        public List<ConfigValue> GetData()
         {
             return data;
         }

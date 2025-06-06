@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace ModConfigMenu.Services
@@ -33,7 +34,8 @@ namespace ModConfigMenu.Services
                 return intValue;
             }
 
-            if (float.TryParse(value, out float floatValue))
+            if (float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out float floatValue))
+            //if (float.TryParse(value, out float floatValue))
             {
 #if DEBUG
                 Debug.Log($"Converting {value} to float.");
