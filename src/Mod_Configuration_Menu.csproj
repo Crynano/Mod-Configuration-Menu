@@ -20,6 +20,13 @@
 	  <None Remove="Move To Root\**" />
 	</ItemGroup>
 	<ItemGroup>
+	  <None Remove="Resources\mcmassets.manifest" />
+	  <None Remove="Resources\Mod Configuration Menu.manifest" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Resources\mcmassets" />
+	</ItemGroup>
+	<ItemGroup>
 		<Reference Include="Assembly-CSharp" publicize="true">
 			<HintPath>$(ManagedPath)Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>

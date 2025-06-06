@@ -1,4 +1,8 @@
-﻿using System.IO;
+﻿using MGSC;
+using System;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
 using UnityEngine;
 
 namespace ModConfigMenu.Services
@@ -38,6 +42,36 @@ namespace ModConfigMenu.Services
                 //Logger.LogWarning($"Asset {fileName} is missing from bundle: {bundlePath}");
                 return null;
             }
+        }
+
+        // Thanks to "NBK_RedSpy" and "amazonochka utyty" from QM Discord!
+        public static T LoadFileFromMemory<T>(string resourceName, string fileName) where T : class
+        {
+            if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(resourceName))
+            {
+                return null;
+            }
+
+            Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+
+            if (stream == null)
+            {
+                UnityEngine.Debug.LogError("ASSETBUNDLE COULD NOT BE LOADED");
+                return null;
+            }
+
+            AssetBundle loadedBundle = AssetBundle.LoadFromStream(stream);
+            var loadedAsset = loadedBundle.LoadAsset(fileName, typeof(T)) as T;
+            loadedBundle.Unload(false);
+
+            stream.Position = 0;
+
+            if (loadedAsset != null)
+            {
+                //Logger.LogInfo($"Loaded asset correctly! Returning {loadedAsset.GetType()}");
+                return loadedAsset;
+            }
+            return null;
         }
     }
 }

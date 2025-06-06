@@ -55,7 +55,8 @@ namespace ModConfigMenu
                 case false when path.Contains(nameof(ModConfigMenu)):
                     {
                         // Get it from assetbundle
-                        var mcm = Importer.LoadFileFromBundle<GameObject>("mcmassets", "MCM");
+                        //var mcm = Importer.LoadFileFromBundle<GameObject>("mcmassets", "MCM");
+                        var mcm = Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "MCM");
                         mcm.AddComponent<ModConfigMenu>();
                         return mcm;
                         //var menuSettingsScreen = GameObject.FindObjectOfType<GameSettingsScreen>(true).gameObject;
@@ -65,14 +66,14 @@ namespace ModConfigMenu
                     }
                 case false when path.Contains(nameof(ColorPickerController)):
                     {
-                        var obj = Importer.LoadFileFromBundle<GameObject>("mcmassets", "ColorPickerRoot");
+                        var obj = Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "ColorPickerRoot");
                         obj.AddComponent<ColorPickerController>();
                         obj.SetActive(false);
                         return obj;
                     }
                 case false when path.Contains(nameof(ChangeModConfirmationPanel)):
                     {
-                        var obj = Importer.LoadFileFromBundle<GameObject>("mcmassets", "SaveModConfirmPanel");
+                        var obj = Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "SaveModConfirmPanel");
                         obj.AddComponent<ChangeModConfirmationPanel>();
                         return obj;
                     }
