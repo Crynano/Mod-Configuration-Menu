@@ -38,7 +38,7 @@ namespace ModConfigMenu.Objects
         /// Storage for all the comments converted to properties, which facilitates the search for data.
         /// Currently used properties are: min, max, default, type, tooltip, label.
         /// </summary>
-        public List<Property> Properties = new List<Property>();
+        public List<MetaData> Properties = new List<MetaData>();
 
         /// <summary>
         /// Properties are two-split values that contain desired values.
@@ -60,12 +60,42 @@ namespace ModConfigMenu.Objects
             
         }
 
-        public ConfigValue(string key, object value, List<Property> properties, string header)
+        public ConfigValue(string key, object value, List<MetaData> properties, string header)
         {
             this.Key = key;
             this.Value = value;
-            this.Properties = new List<Property>();
+            this.Properties = new List<MetaData>();
             this.Properties.AddRange(properties);
+            this.Header = header;
+        }
+
+        /// <summary>
+        /// A constructor with all optional-parameters set.
+        /// </summary>
+        /// <param name="key">The key which to identify the configuration.</param>
+        /// <param name="value">The starting value of the configuration.</param>
+        /// <param name="header">Category in UI where to place value under.</param>
+        /// <param name="min">Minimum value for a range. Only used if it's a numerical value.</param>
+        /// <param name="max">Maximum value for a range. Only used if it's a numerical value.</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <param name="tooltip">Text that appears when value is hovered. Used to clarify config's functionality</param>
+        /// <param name="label">Alternative name for the variable.</param>
+        /// <param name="orderedDropdownOptions">Ordered dropdown options. Only used if the property is a dropdown.</param>
+        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label, List<string> orderedDropdownOptions, Type typeForce, float min = 1.0f, float max = 1.0f)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Properties = new List<MetaData>();
+            this.Properties.Add(new MetaData("default", defaultValue));
+            this.Properties.Add(new MetaData("min", min));
+            this.Properties.Add(new MetaData("max", max));
+            this.Properties.Add(new MetaData("label", label));
+            this.Properties.Add(new MetaData("default", tooltip));
+            this.Properties.Add(new MetaData("type", typeForce));
+            for (int i = 0; i < orderedDropdownOptions.Count; i++)
+            {
+                this.Properties.Add(new MetaData(i.ToString(), orderedDropdownOptions[i]));
+            }
             this.Header = header;
         }
 
@@ -82,7 +112,7 @@ namespace ModConfigMenu.Objects
 
         #region Debug
 
-        public void Debug()
+        public void PrintDebug()
         {
             string msg = "";
 
@@ -210,7 +240,9 @@ namespace ModConfigMenu.Objects
             }
             else
             {
+#if DEBUG
                 UnityEngine.Debug.Log($"DataBlock {Key} does not have a Type cast.");
+#endif
                 return string.Empty;
             }
         }
@@ -275,7 +307,7 @@ namespace ModConfigMenu.Objects
             var trimmedValues = untrimmedLine.Split(new[] { ' ' }, 2);
             string key = trimmedValues[0].Replace("#", string.Empty);
             var value = ConvertHelper.ConvertValue(trimmedValues[1]);
-            Property newProp = new Property(key, value);
+            MetaData newProp = new MetaData(key, value);
             Properties.Add(newProp);
         }
 
@@ -284,7 +316,7 @@ namespace ModConfigMenu.Objects
         //    return Comments.Find(x => x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))?.Replace(start, string.Empty).Trim() ?? string.Empty;
         //}
 
-        public Property GetProperty(string name)
+        public MetaData GetProperty(string name)
         {
             return Properties.Find(x => x.Key == name);
         }

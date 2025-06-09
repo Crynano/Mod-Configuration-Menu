@@ -13,6 +13,8 @@ namespace ModConfigMenu
 
         public static string AllModsConfigPath = $"{Application.persistentDataPath}/../Quasimorph_ModConfigs";
 
+        public static string MCMConfigPath = Path.Combine(AllModsConfigPath, "MCM");
+
         public const string MCM_CONTROLLED_SUFFIX = "_mcm";
 
         [Hook(ModHookType.AfterConfigsLoaded)]

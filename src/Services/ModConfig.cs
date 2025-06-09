@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace ModConfigMenu
 {
-    internal class ConfigData
+    internal class ModConfig
     {
         public readonly string ModName;
 
@@ -24,7 +24,7 @@ namespace ModConfigMenu
 
         public Action<Dictionary<string, object>> OnConfigSaved;
 
-        public ConfigData(string modName, string filePath, string fileExtension = ".ini")
+        public ModConfig(string modName, string filePath, string fileExtension = ".ini")
         {
             if (!filePath.EndsWith(fileExtension, StringComparison.OrdinalIgnoreCase))
             {
@@ -36,10 +36,14 @@ namespace ModConfigMenu
             this.data = new List<ConfigValue>();
         }
 
-        public ConfigData(string modName, List<ConfigValue> userData)
+        public ModConfig(string modName, List<ConfigValue> userData)
         {
             this.ModName = modName;
             this.data = userData;
+            this.filePath = Path.Combine(Plugin.MCMConfigPath, $"{modName}_config.ini");
+#if DEBUG
+            UnityEngine.Debug.Log($"{this.ModName} has MCM config for {this.filePath}");
+#endif
             // This should auto-parse with a different method.
             // It would also try to get the mcmData even if user still inputted data. The compare both.
             LoadUser();
@@ -47,8 +51,9 @@ namespace ModConfigMenu
 
         private void LoadUser()
         {
-            // Import MCM config
-            // Import Original config.
+            // Import MCM config.
+            // Use a new filepath
+            // It is loaded inside the new constructor
             // If MCM config exists, then compare it to original.
             List<ConfigValue> mcmData = new List<ConfigValue>();
 
@@ -59,15 +64,12 @@ namespace ModConfigMenu
             }
 
             // Data stored is a mix of the two
-            if (mcmData.Count > 0 && data.Count > 0)
+            if (mcmData.Count > 0 )
             {
-                UnityEngine.Debug.Log("Trying to update mod data");
-                this.data = UpdateData(mcmData, data);
-            }
-            else if (mcmData.Count > 0)
-            {
-                UnityEngine.Debug.Log("Error updating, only loading mcm data");
-                this.data = mcmData;
+                if (data.Count > 0)
+                    this.data = UpdateData(mcmData, data);
+                else
+                    this.data = mcmData;
             }
         }
 
@@ -151,9 +153,12 @@ namespace ModConfigMenu
                     string key = keyValue[0].Trim();
                     string value = keyValue[1].Trim();
 
-                    // Convert and assign
+                    // Convert and assign 
                     // This could be a good step to check for forced Type-castings
-                    var convertedValue = ConvertValue(value);
+
+                    // If there's a forced conversion, we should do that.
+                    var convertingType = Type.GetType(currentBlock.GetTypeProp());
+                    var convertedValue = ConvertValue(value, convertingType);
                     currentBlock.Value = convertedValue;
                     currentBlock.Key = key;
                     currentBlock.Header = currentSection;
@@ -171,6 +176,14 @@ namespace ModConfigMenu
             }
 
             return localData;
+        }
+
+        private void ShowTypeInfo(Type t)
+        {
+            Debug.LogWarning($"Name: {t.Name}");
+            Debug.LogWarning($"Full Name: {t.FullName}");
+            Debug.LogWarning($"ToString:  {t}");
+            Debug.LogWarning($"Assembly Qualified Name: {t.AssemblyQualifiedName}");
         }
 
         private List<ConfigValue> UpdateData(List<ConfigValue> userData, List<ConfigValue> originalModData)
@@ -194,16 +207,16 @@ namespace ModConfigMenu
             return originalModData;
         }
 
-        private object ConvertValue(string value)
+        private object ConvertValue(string value, Type forcedConversion = null)
         {
-            return ConvertHelper.ConvertValue(value);
+            return ConvertHelper.ConvertValue(value, forcedConversion);
         }
 
-        public void Debug()
+        public void DebugObject()
         {
             foreach (var variableList in data)
             {
-                variableList.Debug();
+                variableList.PrintDebug();
             }
         }
 

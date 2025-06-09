@@ -39,7 +39,7 @@ namespace ModConfigMenu
         private Button _saveButton;
         private Button _resetDefaultButton;
 
-        private ConfigData lastActiveMod = null;
+        private ModConfig lastActiveMod = null;
         private Transform lastActiveModRoot = null;
         private Dictionary<string, Transform> ModsRoot = new Dictionary<string, Transform>();
 
@@ -122,7 +122,7 @@ namespace ModConfigMenu
 #if DEBUG
                     Debug.Log($"Clicked button to load {modName} config.");
 #endif
-                    ConfigData modConfig = ModConfigManager.GetModConfig(modName);
+                    ModConfig modConfig = ModConfigManager.GetModConfig(modName);
                     ModsRoot.TryGetValue(modName, out Transform root);
                     if (root != null)
                     {
@@ -195,7 +195,7 @@ namespace ModConfigMenu
         //    }
         //}
 
-        private void SwitchMod(ConfigData newMod, Transform newOne)
+        private void SwitchMod(ModConfig newMod, Transform newOne)
         {
             // if currentMod is dirty, pop the menu asking to save.
             // if yes, save and execute following
@@ -233,7 +233,7 @@ namespace ModConfigMenu
                 ChangeMod();
             }
 
-            void DestroyDiscardedMod(ConfigData oldMod)
+            void DestroyDiscardedMod(ModConfig oldMod)
             {
                 lastActiveModRoot?.gameObject.SetActive(false);
                 ModsRoot.Remove(oldMod.ModName);
@@ -254,7 +254,7 @@ namespace ModConfigMenu
             }
         }
 
-        private void CreateNewMod(string modName, ConfigData modConfig)
+        private void CreateNewMod(string modName, ModConfig modConfig)
         {
             var newRoot = BuildModConfig(modConfig);
             ModsRoot.Add(modName, newRoot);
@@ -268,7 +268,7 @@ namespace ModConfigMenu
             lastActiveModRoot?.gameObject.SetActive(false);
             ModsRoot.Remove(lastActiveMod.ModName);
             Destroy(lastActiveModRoot?.gameObject);
-            ConfigData modConfig = ModConfigManager.GetModConfig(currentModName);
+            ModConfig modConfig = ModConfigManager.GetModConfig(currentModName);
             modConfig.ResetAllToDefault();
             CreateNewMod(currentModName, modConfig);
             SaveCurrentMod();
@@ -314,7 +314,7 @@ namespace ModConfigMenu
         /// </summary>
         /// <param name="modData"></param>
         /// <returns></returns>
-        private Transform BuildModConfig(ConfigData modData)
+        private Transform BuildModConfig(ModConfig modData)
         {
             if (modData == null)
             {
@@ -392,32 +392,47 @@ namespace ModConfigMenu
 
                     var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
                     wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
+                    var bindingText = wrapper._valueText;
+                    wrapper._valueText = null;
 
                     var objectSlider = instObj.GetComponentInChildren<Slider>();
                     objectSlider.minValue = currentDatablock.GetMin();
                     objectSlider.maxValue = currentDatablock.GetMax();
                     objectSlider.value = floatValue;
                     objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate (Single newVal)
+                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
                     {
-                        currentDatablock.SetUnstoredValue(newVal);
+                        float correctedVal = (float)Math.Round(newVal, 2);
+                        currentDatablock.SetUnstoredValue(correctedVal);
                         // Discarding the decimal stuff with the wrapper
                         // TODO please devs add decimals to your wrapper.
-                        //wrapper._valueText.text = newVal.ToString("N2", CultureInfo.InvariantCulture);
+                        bindingText.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
                     });
                     objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = floatValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
-                //else if (currentDatablock.GetValue() is double doubleValue)
-                //{
-                //    goToInstantiate = rangeButtonPrefab;
-                //    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                //    var objectSlider = instObj.GetComponentInChildren<Slider>();
-                //    objectSlider.minValue = currentDatablock.GetMin();
-                //    objectSlider.maxValue = currentDatablock.GetMax();
-                //    objectSlider.value = (float)doubleValue;
-                //    objectSlider.onValueChanged.AddListener(currentDatablock.SetUnstoredValue);
-                //    objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString(CultureInfo.CurrentCulture);
-                //}
+                else if (currentDatablock.GetValue() is double doubleValue)
+                {
+                    goToInstantiate = rangeButtonPrefab;
+                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+
+                    var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
+                    wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
+                    var bindingText = wrapper._valueText;
+                    wrapper._valueText = null;
+
+                    var objectSlider = instObj.GetComponentInChildren<Slider>();
+                    objectSlider.minValue = currentDatablock.GetMin();
+                    objectSlider.maxValue = currentDatablock.GetMax();
+                    objectSlider.value = (float)doubleValue;
+                    objectSlider.wholeNumbers = false;
+                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                    {
+                        float correctedVal = (float)Math.Round(newVal, 2);
+                        currentDatablock.SetUnstoredValue(correctedVal);
+                        bindingText.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
+                    });
+                    objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
+                }
                 else if (currentDatablock.GetValue() is Color colore)// if (categoryVariables.Value is Color colorValue)
                 {
                     goToInstantiate = colorButtonPrefab;

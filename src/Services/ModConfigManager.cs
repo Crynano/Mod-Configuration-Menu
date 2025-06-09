@@ -9,7 +9,7 @@ namespace ModConfigMenu
 {
     internal static class ModConfigManager
     {
-        private static Dictionary<string, ConfigData> allModsConfigData = new Dictionary<string, ConfigData>();
+        private static Dictionary<string, ModConfig> allModsConfigData = new Dictionary<string, ModConfig>();
 
         /// <summary>
         /// This corresponds to the list of mods that have a mod config available.
@@ -73,10 +73,10 @@ namespace ModConfigMenu
                 return;
             }
 
-            ConfigData modConfigData = new ConfigData(modName, filePath);
+            ModConfig modConfigData = new ModConfig(modName, filePath);
             modConfigData.Parse();
 #if DEBUG
-            modConfigData.Debug();
+            modConfigData.DebugObject();
 #endif
             allModsConfigData.Add(modName, modConfigData);
             modConfigData.OnConfigSaved += modOnConfigSaved;
@@ -99,18 +99,18 @@ namespace ModConfigMenu
                 return false;
             }
 
-            ConfigData modConfigData = new ConfigData(modName, configData);
+            ModConfig modConfigData = new ModConfig(modName, configData);
 #if DEBUG
-            modConfigData.Debug();
+            modConfigData.DebugObject();
 #endif
             allModsConfigData.Add(modName, modConfigData);
             modConfigData.OnConfigSaved += modOnConfigSaved;
             return true;
         }
 
-        public static ConfigData GetModConfig(string modName)
+        public static ModConfig GetModConfig(string modName)
         {
-            allModsConfigData.TryGetValue(modName, out ConfigData data);
+            allModsConfigData.TryGetValue(modName, out ModConfig data);
             return data;
         }
     }

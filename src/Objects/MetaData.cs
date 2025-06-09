@@ -8,12 +8,12 @@ using UnityEngine;
 
 namespace ModConfigMenu
 {
-    public struct Property
+    public struct MetaData
     {
         public readonly string Key;
         public readonly object Value;
 
-        public Property(string key, object value)
+        public MetaData(string key, object value)
         {
             this.Key = key;
             this.Value = value;

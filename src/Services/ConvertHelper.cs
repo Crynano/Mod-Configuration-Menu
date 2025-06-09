@@ -14,7 +14,7 @@ namespace ModConfigMenu.Services
                 try
                 {
 #if DEBUG
-                    UnityEngine.Debug.Log($"Chosen dynamic type for {value} is: {implicitConversion}");
+                    Debug.Log($"Chosen dynamic type for {value} is: {implicitConversion}");
 #endif
                     var returnVar = Convert.ChangeType(value, implicitConversion);
                     if (returnVar != null) return returnVar;
