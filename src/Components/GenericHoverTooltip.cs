@@ -55,7 +55,7 @@ namespace ModConfigMenu
         public void OnPointerEnter(PointerEventData eventData)
         {
             //SetSelectedVisual(value: true);
-            if (!_createdTooltip)
+            if (!_createdTooltip && !string.IsNullOrEmpty(_tooltipText))
             {
                 _createdTooltip = true;
                 SingletonMonoBehaviour<TooltipFactory>.Instance.ShowSimpleTextTooltip(_tooltipText);

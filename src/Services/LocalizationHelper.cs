@@ -13,9 +13,7 @@ namespace ModConfigMenu.Services
                 if (currentDict != null && !currentDict.ContainsKey(key))
                 {
                     currentDict.Add(key, value);
-#if DEBUG
-                    Debug.Log($"Adding {key} with {value} in {singleDictionary.Key}");
-#endif
+                    //Logger.LogDebug($"Adding {key} with {value} in {singleDictionary.Key}");
                 }
             }
         }

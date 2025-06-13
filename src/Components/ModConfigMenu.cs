@@ -10,6 +10,7 @@ using Debug = UnityEngine.Debug;
 using static MGSC.InputController;
 using System.ComponentModel;
 using System;
+using System.Linq;
 
 namespace ModConfigMenu
 {
@@ -130,7 +131,7 @@ namespace ModConfigMenu
                     }
                     else
                     {
-                        CreateNewMod(modName, modConfig);
+                        CreateNewMod(modConfig);
                     }
                 };
             }
@@ -195,12 +196,12 @@ namespace ModConfigMenu
         //    }
         //}
 
-        private void SwitchMod(ModConfig newMod, Transform newOne)
+        private void SwitchMod(ModConfig newMod, Transform newModRoot)
         {
             // if currentMod is dirty, pop the menu asking to save.
             // if yes, save and execute following
             // If no, skip
-            if (lastActiveModRoot != null && newOne.gameObject == lastActiveModRoot.gameObject) return;
+            if (lastActiveModRoot != null && newModRoot.gameObject == lastActiveModRoot.gameObject) return;
             if (lastActiveMod != null && lastActiveMod.IsDirty)
             {
                 // Popup
@@ -229,15 +230,10 @@ namespace ModConfigMenu
             void DiscardChanges()
             {
                 DiscardCurrentModChanges();
-                DestroyDiscardedMod(lastActiveMod);
-                ChangeMod();
-            }
-
-            void DestroyDiscardedMod(ModConfig oldMod)
-            {
                 lastActiveModRoot?.gameObject.SetActive(false);
-                ModsRoot.Remove(oldMod.ModName);
+                ModsRoot.Remove(lastActiveMod.ModName);
                 Destroy(lastActiveModRoot?.gameObject);
+                ChangeMod();
             }
 
             void ChangeMod()
@@ -249,19 +245,21 @@ namespace ModConfigMenu
                 lastActiveMod = newMod;
                 lastActiveMod.OnConfigChanged += EnableSaveButton;
                 lastActiveModRoot?.gameObject.SetActive(false);
-                lastActiveModRoot = newOne;
+                lastActiveModRoot = newModRoot;
                 lastActiveModRoot.gameObject.SetActive(true);
             }
         }
 
-        private void CreateNewMod(string modName, ModConfig modConfig)
+
+
+        private void CreateNewMod(ModConfig modConfig)
         {
             var newRoot = BuildModConfig(modConfig);
-            ModsRoot.Add(modName, newRoot);
+            ModsRoot.Add(modConfig.ModName, newRoot);
             SwitchMod(modConfig, newRoot);
         }
 
-        private void ReloadModRoot()
+        private void ReloadModRoot(bool resetDefaultValues = false)
         {
             DiscardCurrentModChanges();
             string currentModName = lastActiveMod.ModName;
@@ -269,9 +267,9 @@ namespace ModConfigMenu
             ModsRoot.Remove(lastActiveMod.ModName);
             Destroy(lastActiveModRoot?.gameObject);
             ModConfig modConfig = ModConfigManager.GetModConfig(currentModName);
-            modConfig.ResetAllToDefault();
-            CreateNewMod(currentModName, modConfig);
-            SaveCurrentMod();
+            if (resetDefaultValues)
+                modConfig.ResetAllToDefault();
+            CreateNewMod(modConfig);
         }
 
         private void ResetCurrentMod()
@@ -283,7 +281,7 @@ namespace ModConfigMenu
             UI.Get<ChangeModConfirmationPanel>().Configure(
                 "Reset all to default.".ColorFirstLetter(letterColor),
                 "Are you sure you want to reset all values to default?",
-                ReloadModRoot,
+                () => { ReloadModRoot(true); SaveCurrentMod(); },
                 null,
                 null
             );
@@ -300,8 +298,24 @@ namespace ModConfigMenu
         private void SaveCurrentMod()
         {
             if (lastActiveMod == null) return;
-            lastActiveMod?.Save();
-            _saveButton?.gameObject.SetActive(false);
+            string errorMessage = string.Empty;
+            if (lastActiveMod.Save(out errorMessage))
+            {
+                _saveButton?.gameObject.SetActive(false);
+            }
+            else
+            {
+                // Popup message.
+                ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
+                UI.Chain<ChangeModConfirmationPanel>().Show();
+                UI.Get<ChangeModConfirmationPanel>().Configure(
+                    $"ERROR WHEN SAVING \"{lastActiveMod.ModName}\"".ColorFirstLetter(letterColor),
+                    errorMessage,
+                    () => { ReloadModRoot(false); },
+                    null,
+                    () => { ReloadModRoot(false); }
+                );
+            }
         }
 
         private void EnableSaveButton()
@@ -318,7 +332,7 @@ namespace ModConfigMenu
         {
             if (modData == null)
             {
-                Debug.Log($"Mod can't be built!");
+                Logger.LogError($"Mod data is empty and can't be built!");
                 return null;
             }
 
@@ -327,8 +341,16 @@ namespace ModConfigMenu
             Transform thisContentRoot = rootGameObject.GetComponent<ScrollRect>().content;
             string currentHeader = string.Empty;
 
-            foreach (var currentDatablock in modData.GetData())
+            var orderedModData = modData.GetData().OrderBy(x => x.Header);
+            Logger.LogDebug($"Logging ordered values. Same length? {modData.GetData().Count() == orderedModData.Count()} ");
+            foreach (var item in orderedModData)
             {
+                Logger.LogDebug($"{item.Key} {item.Header}");
+            }
+
+            foreach (var currentDatablock in orderedModData)
+            {
+                var currentValue = currentDatablock.GetValue();
                 if (!currentHeader.Equals(currentDatablock.Header))
                 {
                     currentHeader = currentDatablock.Header;
@@ -341,7 +363,7 @@ namespace ModConfigMenu
                 GameObject instObj = null;
 
                 // Forced type. For example dropdown.
-                if (currentDatablock.GetValue() is bool boolValue)
+                if (currentValue is bool boolValue)
                 {
                     goToInstantiate = boolButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -353,7 +375,7 @@ namespace ModConfigMenu
                         currentDatablock.SetUnstoredValue(a);
                     });
                 }
-                else if (currentDatablock.GetValue() is int intValue)
+                else if (currentValue is int intValue)
                 {
                     if (currentDatablock.GetTypeProp().ToLower().Equals("dropdown"))
                     {
@@ -385,7 +407,7 @@ namespace ModConfigMenu
                             intValue.ToString(CultureInfo.CurrentCulture);
                     }
                 }
-                else if (currentDatablock.GetValue() is float floatValue)
+                else if (currentValue is float floatValue)
                 {
                     goToInstantiate = rangeButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -410,7 +432,7 @@ namespace ModConfigMenu
                     });
                     objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = floatValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
-                else if (currentDatablock.GetValue() is double doubleValue)
+                else if (currentValue is double doubleValue)
                 {
                     goToInstantiate = rangeButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -433,7 +455,7 @@ namespace ModConfigMenu
                     });
                     objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
-                else if (currentDatablock.GetValue() is Color colore)// if (categoryVariables.Value is Color colorValue)
+                else if (currentValue is Color colore)// if (categoryVariables.Value is Color colorValue)
                 {
                     goToInstantiate = colorButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -469,15 +491,10 @@ namespace ModConfigMenu
                 }
                 else
                 {
-                    // Dafuq
-                    Debug.Log("Dafuq");
+                    Logger.LogError($"Could not create UI. Value \"{currentValue}\" with Type \"{currentValue.GetType()}\" might not be supported, or an error has occurred.");
                 }
-                // Here we instantiate the stuff!
 
                 if (instObj == null) continue;
-
-                // Maybe we should add a binding to restart each property?
-                // HURRRRRR
 
                 // Visual tooltip to aid in property description
                 instObj.GetComponentInChildren<GenericHoverTooltip>(true)?.Initialize(currentDatablock.GetTooltip());

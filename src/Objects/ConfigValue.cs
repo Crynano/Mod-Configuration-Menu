@@ -90,7 +90,7 @@ namespace ModConfigMenu.Objects
             this.Properties.Add(new MetaData("min", min));
             this.Properties.Add(new MetaData("max", max));
             this.Properties.Add(new MetaData("label", label));
-            this.Properties.Add(new MetaData("default", tooltip));
+            this.Properties.Add(new MetaData("tooltip", tooltip));
             this.Properties.Add(new MetaData("type", typeForce));
             for (int i = 0; i < orderedDropdownOptions.Count; i++)
             {
@@ -240,9 +240,6 @@ namespace ModConfigMenu.Objects
             }
             else
             {
-#if DEBUG
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have a Type cast.");
-#endif
                 return string.Empty;
             }
         }

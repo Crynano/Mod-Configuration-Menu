@@ -56,7 +56,7 @@ namespace ModConfigMenu.Services
 
             if (stream == null)
             {
-                UnityEngine.Debug.LogError("ASSETBUNDLE COULD NOT BE LOADED");
+                Logger.LogError("ASSETBUNDLE COULD NOT BE LOADED");
                 return null;
             }
 

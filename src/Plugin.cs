@@ -1,6 +1,9 @@
 ﻿using MGSC;
 using ModConfigMenu.Components;
+using ModConfigMenu.Objects;
 using ModConfigMenu.Services;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -20,7 +23,20 @@ namespace ModConfigMenu
         [Hook(ModHookType.AfterConfigsLoaded)]
         public static void AfterConfig(IModContext context)
         {
-            // Do nothing?
+            var configValues = new List<ConfigValue>()
+             {
+                 new ConfigValue("testkey", false, "HeaderTest", true, "some true value", "", new List<string>(), typeof(bool)),
+                 new ConfigValue("testkey2", false, "HeaderTest", true, "some true value", "", new List<string>(), typeof(bool)),
+                 new ConfigValue("testkey4", false, "TwoJHeader", true, "some true value", "", new List<string>(), typeof(bool)),
+                 new ConfigValue("testkey3", false, "interrupt header", true, "some true value", "", new List<string>(), typeof(bool)),
+                 new ConfigValue("testkey5", false, "HeaderTest", true, "some true value", "", new List<string>(), typeof(bool)),
+             };
+
+            ModConfigMenuAPI.RegisterModConfig("TEST", configValues, delegate(Dictionary<string, object> props, out string message)
+            {
+                message = "Example message from a failed test";
+                return false;
+            });
         }
 
         [Hook(ModHookType.MainMenuStarted)]
@@ -46,6 +62,7 @@ namespace ModConfigMenu
             {
                 UI.Chain<ModConfigMenu>().HideAll().Show();
             };
+      
         }
 
         [Hook(ModHookType.ResourcesLoad)]

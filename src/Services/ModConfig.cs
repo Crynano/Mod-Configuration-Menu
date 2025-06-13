@@ -5,6 +5,9 @@ using System.IO;
 using System.Linq;
 using ModConfigMenu.Services;
 using UnityEngine;
+using static ModConfigMenu.ModConfigMenuAPI;
+using MGSC;
+using ModConfigMenu.Components;
 
 namespace ModConfigMenu
 {
@@ -20,33 +23,31 @@ namespace ModConfigMenu
 
         public bool IsDirty { get; private set; } = false;
 
+        private bool _saveToFile = true;
+
         public Action OnConfigChanged;
 
-        public Action<Dictionary<string, object>> OnConfigSaved;
+        public ConfigStoredDelegate OnConfigSaved;
 
-        public ModConfig(string modName, string filePath, string fileExtension = ".ini")
+        public ModConfig(string modName, string filePath, ConfigStoredDelegate OnConfigSaved)
         {
-            if (!filePath.EndsWith(fileExtension, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"File must have a {fileExtension} extension");
-            }
-
             this.ModName = modName;
             this.filePath = filePath;
+            this.OnConfigSaved = OnConfigSaved;
             this.data = new List<ConfigValue>();
         }
 
-        public ModConfig(string modName, List<ConfigValue> userData)
+        public ModConfig(string modName, List<ConfigValue> userData, ConfigStoredDelegate OnConfigSaved, bool saveToFile = false)
         {
+            // Directly load data. No files related.
             this.ModName = modName;
             this.data = userData;
-            this.filePath = Path.Combine(Plugin.MCMConfigPath, $"{modName}_config.ini");
-#if DEBUG
-            UnityEngine.Debug.Log($"{this.ModName} has MCM config for {this.filePath}");
-#endif
-            // This should auto-parse with a different method.
-            // It would also try to get the mcmData even if user still inputted data. The compare both.
-            LoadUser();
+            foreach (ConfigValue entryData in this.data)
+            {
+                entryData.OnValueChanged += DataBlockChanged;
+            }
+            this.OnConfigSaved = OnConfigSaved;
+            this._saveToFile = saveToFile;
         }
 
         private void LoadUser()
@@ -178,14 +179,6 @@ namespace ModConfigMenu
             return localData;
         }
 
-        private void ShowTypeInfo(Type t)
-        {
-            Debug.LogWarning($"Name: {t.Name}");
-            Debug.LogWarning($"Full Name: {t.FullName}");
-            Debug.LogWarning($"ToString:  {t}");
-            Debug.LogWarning($"Assembly Qualified Name: {t.AssemblyQualifiedName}");
-        }
-
         private List<ConfigValue> UpdateData(List<ConfigValue> userData, List<ConfigValue> originalModData)
         {
             // For each value of the original, get the value in the userData. Otherwise, keep it default.
@@ -197,9 +190,7 @@ namespace ModConfigMenu
                 // If the config already exists, copy the user value.
                 if (foundUserDatablock != null)
                 {
-#if DEBUG
-                    UnityEngine.Debug.Log($"Found a user datablock with ID: {foundUserDatablock.Key} with value {foundUserDatablock.Value} against the original {dataBlock.Value}");
-#endif
+                    //Logger.LogDebug($"Found a user datablock with ID: {foundUserDatablock.Key} with value {foundUserDatablock.Value} against the original {dataBlock.Value}");
                     dataBlock.Value = foundUserDatablock.Value;
                 }
             }
@@ -273,29 +264,48 @@ namespace ModConfigMenu
 
         internal void DataBlockChanged()
         {
-#if DEBUG
-            UnityEngine.Debug.Log($"A ConfigData has changed!");
-#endif
-            //FileHandler.WriteToFile(filePath.Replace(".ini", "_test.ini"), GetPrintableFile());
-            // Set Dirty
             IsDirty = true;
             OnConfigChanged?.Invoke();
         }
 
-        internal void Save()
+        internal bool Save(out string errorMessage)
         {
-#if DEBUG
-            UnityEngine.Debug.Log($"ConfigData has been SAVED!");
-#endif
-            // First Save all Blocks
-            SaveDataBlocks();
+            errorMessage = string.Empty;
+            try
+            {
+                bool goodConfig = OnConfigSaved?.Invoke(GetAllValues(), out errorMessage) ?? false;
+                // show a message if goodConfig is false
+                if (!goodConfig)
+                {
+                    return false;
+                }
+                SaveDataBlocks();
+                SaveToFile();
+                Logger.LogInfo($"ModConfig for \"{this.ModName}\" has been saved.");
+                IsDirty = false;
+                return true;
+            }
+            catch (NullReferenceException e)
+            {
+                errorMessage += e.Message;
+            }
+            catch (Exception e)
+            {
+                errorMessage += e.Message;
+            }
+            return false;
+        }
+
+        internal void SaveToFile()
+        {
+            // If the user does not want a file to save to. Then ignore.
+            if (!_saveToFile) return;
+
             string finalFilePath = McmFilepath;
-#if DEBUG
-            finalFilePath.Replace(".ini", "_debug.ini");
-#endif
+//#if DEBUG
+//            finalFilePath.Replace(".ini", "_debug.ini");
+//#endif
             FileHandler.WriteToFile(finalFilePath, GetPrintableFile());
-            IsDirty = false;
-            OnConfigSaved?.Invoke(GetAllValues());
         }
 
         internal void Discard()
