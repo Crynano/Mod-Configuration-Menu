@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace ModConfigMenu.Components
 {
-    [UIView(GameLoopGroup.MainMenu, false, false)]
+    [UIView(GameLoopGroup.MainMenu, false, true)]
     public class ChangeModConfirmationPanel : MonoBehaviour
     {
         private Button acceptButton;
@@ -24,8 +24,8 @@ namespace ModConfigMenu.Components
             cancelButton = buttonTransform.Find("CancelButton").GetComponent<Button>();
             discardButton = buttonTransform.Find("DiscardButton").GetComponent<Button>();
 
-            captionText = panelTransform.Find("Caption").gameObject.GetComponent<TextMeshProUGUI>();
-            titleText = panelTransform.Find("Title").gameObject.GetComponent<TextMeshProUGUI>();
+            captionText = panelTransform.Find("CaptionArea").Find("Caption").gameObject.GetComponent<TextMeshProUGUI>();
+            titleText = panelTransform.Find("TitleArea").Find("Title").gameObject.GetComponent<TextMeshProUGUI>();
         }
 
         public void Configure(string title, string caption, Action acceptAction, Action discardAction, Action cancelAction)

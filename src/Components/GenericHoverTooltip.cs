@@ -1,5 +1,6 @@
 ﻿using System;
 using MGSC;
+using ModConfigMenu.Components;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,43 +14,12 @@ namespace ModConfigMenu
 
         private bool _createdTooltip;
 
-        //public override void Select()
-        //{
-        //    _selectedBorder.gameObject.SetActive(value: true);
-        //    OnPointerEnter(null);
-        //}
+        private CustomTooltip _tooltip;
 
-        //public override void Diselect()
-        //{
-        //    _selectedBorder.gameObject.SetActive(value: false);
-        //    OnPointerExit(null);
-        //}
-
-        //public override void EvaluateConfirm()
-        //{
-        //    OnPointerClick(null);
-        //}
-
-        //public void Refresh(bool canDisassembly, CorpseInspectWindow.ActiveCorpseScreenPage activeCorpseScreenPage)
-        //{
-        //    base.gameObject.SetActive(canDisassembly);
-        //    _createdTooltip = false;
-        //    SingletonMonoBehaviour<TooltipFactory>.Instance.HideSimpleTextTooltip();
-        //    SetSelectedVisual(value: false);
-        //}
-
-        //public void OnPointerClick(PointerEventData eventData)
-        //{
-        //    SingletonMonoBehaviour<SoundController>.Instance.PlayUiSound(SingletonMonoBehaviour<SoundsStorage>.Instance
-        //        .ButtonClick);
-        //    this.OnClicked();
-        //    _createdTooltip = false;
-        //    SingletonMonoBehaviour<TooltipFactory>.Instance.HideSimpleTextTooltip();
-        //}
-
-        public void Initialize(string tooltip)
+        public void Initialize(string tooltip, CustomTooltip customTooltip)
         {
             _tooltipText = tooltip;
+            this._tooltip = customTooltip;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -58,26 +28,15 @@ namespace ModConfigMenu
             if (!_createdTooltip && !string.IsNullOrEmpty(_tooltipText))
             {
                 _createdTooltip = true;
-                SingletonMonoBehaviour<TooltipFactory>.Instance.ShowSimpleTextTooltip(_tooltipText);
-                var tooltip = SingletonMonoBehaviour<TooltipFactory>.Instance._simpleTextTooltip;
-                var toolText = tooltip.GetComponentInChildren<TextMeshProUGUI>(true);
-                toolText.wordWrappingRatios = 12f;
-                toolText.enableWordWrapping = true;
-                AdjustPosition(tooltip.transform);
+                //SingletonMonoBehaviour<TooltipFactory>.Instance.ShowSimpleTextTooltip(_tooltipText);
+                Vector3[] corners = new Vector3[4];
+                ((RectTransform)this.transform).GetLocalCorners(corners);
+                var offset = this.transform.TransformPoint(corners[0]);
+                this._tooltip.Show(offset, _tooltipText);
+                // Disable annoying shit. But not needed for thios
+                SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
             }
             return;
-
-            void AdjustPosition(Transform stuff)
-            {
-                var currentPos = stuff.position;
-                Vector3 correctedPosition = new Vector3()
-                {
-                    x = Mathf.Clamp(currentPos.x, 0f, Screen.width),
-                    y = Mathf.Clamp(currentPos.y, 0f, Screen.height),
-                    z = currentPos.z
-                };
-                stuff.position = correctedPosition;
-            }
         }
 
         public void OnPointerExit(PointerEventData eventData)
@@ -86,7 +45,9 @@ namespace ModConfigMenu
             if (_createdTooltip)
             {
                 _createdTooltip = false;
-                SingletonMonoBehaviour<TooltipFactory>.Instance.HideSimpleTextTooltip();
+                //SingletonMonoBehaviour<TooltipFactory>.Instance.HideSimpleTextTooltip();
+                //UI.Hide<CustomTooltip>();
+                this._tooltip.Hide();
             }
         }
 

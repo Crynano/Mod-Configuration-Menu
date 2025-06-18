@@ -17,6 +17,8 @@ namespace ModConfigMenu
     [UIView(GameLoopGroup.MainMenu, false, true)]
     public class ModConfigMenu : MonoBehaviour
     {
+        public CustomTooltip _customTooltip;
+
         private GameObject ModButtonPrefab;
 
         private Transform ModListRoot;
@@ -103,6 +105,16 @@ namespace ModConfigMenu
             if (_resetDefaultButton != null)
             {
                 _resetDefaultButton.onClick.AddListener(ResetCurrentMod);
+            }
+
+            // Load custom tooltip from Assetbundle and instantiate.
+            var tooltipToInstantiate = Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "CustomTooltipMessage");
+            if (tooltipToInstantiate != null)
+            {
+                var instObject = Instantiate(tooltipToInstantiate, SingletonMonoBehaviour<TooltipFactory>.Instance.transform);
+                _customTooltip = instObject.AddComponent<CustomTooltip>();
+                _customTooltip.name = $"Crynano's " + nameof(CustomTooltip);
+                _customTooltip.gameObject.SetActive(false);
             }
         }
 
@@ -207,6 +219,7 @@ namespace ModConfigMenu
                 // Popup
                 ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
                 UI.Chain<ChangeModConfirmationPanel>().Show();
+                SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
                 UI.Get<ChangeModConfirmationPanel>().Configure(
                     "Unsaved Changes".ColorFirstLetter(letterColor),
                     "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
@@ -278,6 +291,7 @@ namespace ModConfigMenu
 
             ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
             UI.Chain<ChangeModConfirmationPanel>().Show();
+            SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
             UI.Get<ChangeModConfirmationPanel>().Configure(
                 "Reset all to default.".ColorFirstLetter(letterColor),
                 "Are you sure you want to reset all values to default?",
@@ -308,6 +322,7 @@ namespace ModConfigMenu
                 // Popup message.
                 ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
                 UI.Chain<ChangeModConfirmationPanel>().Show();
+                SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
                 UI.Get<ChangeModConfirmationPanel>().Configure(
                     $"ERROR WHEN SAVING \"{lastActiveMod.ModName}\"".ColorFirstLetter(letterColor),
                     errorMessage,
@@ -497,7 +512,7 @@ namespace ModConfigMenu
                 if (instObj == null) continue;
 
                 // Visual tooltip to aid in property description
-                instObj.GetComponentInChildren<GenericHoverTooltip>(true)?.Initialize(currentDatablock.GetTooltip());
+                instObj.GetComponentInChildren<GenericHoverTooltip>(true)?.Initialize(currentDatablock.GetTooltip(), _customTooltip);
 
                 // Label for each object
                 var label = currentDatablock.GetLabel();

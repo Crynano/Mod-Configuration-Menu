@@ -251,8 +251,7 @@ namespace ModConfigMenu.Objects
             {
                 if (int.TryParse(comment.Key, out int result))
                 {
-                    // Heavy? Seems like...
-                    UnityEngine.Debug.Log($"Dropdown option for {comment.Key} is {comment.Value}");
+                    Logger.LogDebug($"Dropdown option for {comment.Key} is {comment.Value}");
                     returnVal.Add(comment.Value as string);
                 }
             }

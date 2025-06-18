@@ -1,13 +1,14 @@
-﻿using ModConfigMenu.Objects;
+﻿
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ModConfigMenu.Services;
 using UnityEngine;
-using static ModConfigMenu.ModConfigMenuAPI;
 using MGSC;
+using ModConfigMenu.Services;
+using ModConfigMenu.Objects;
 using ModConfigMenu.Components;
+using static ModConfigMenu.ModConfigMenuAPI;
 
 namespace ModConfigMenu
 {
@@ -27,7 +28,18 @@ namespace ModConfigMenu
 
         public Action OnConfigChanged;
 
+        private Action<Dictionary<string, object>> OnConfigSavedOld;
+
         public ConfigStoredDelegate OnConfigSaved;
+
+        // Legacy code by now
+        public ModConfig(string modName, string filePath, Action<Dictionary<string, object>> OnConfigSaved)
+        {
+            this.ModName = modName;
+            this.filePath = filePath;
+            this.OnConfigSavedOld = OnConfigSaved;
+            this.data = new List<ConfigValue>();
+        }
 
         public ModConfig(string modName, string filePath, ConfigStoredDelegate OnConfigSaved)
         {
@@ -60,7 +72,7 @@ namespace ModConfigMenu
 
             if (File.Exists(McmFilepath))
             {
-                UnityEngine.Debug.Log("Loading mcm data");
+                Logger.LogDebug($"Loading MCM data for \"{McmFilepath}\"");
                 mcmData = ParseFile(McmFilepath);
             }
 
@@ -273,12 +285,26 @@ namespace ModConfigMenu
             errorMessage = string.Empty;
             try
             {
-                bool goodConfig = OnConfigSaved?.Invoke(GetAllValues(), out errorMessage) ?? false;
-                // show a message if goodConfig is false
-                if (!goodConfig)
+                if (OnConfigSaved != null)
                 {
-                    return false;
+                    bool goodConfig = OnConfigSaved?.Invoke(GetAllValues(), out errorMessage) ?? false;
+                    if (!goodConfig)
+                    {
+                        return false;
+                    }
                 }
+                else if (OnConfigSavedOld != null)
+                {
+                    Logger.LogDebug($"Old config is being saved!", true);
+                    OnConfigSavedOld?.Invoke(GetAllValues());
+                }
+                else
+                {
+                    // No event?
+                    Logger.LogError($"No config is being applied.");
+                }
+                // show a message if goodConfig is false
+               
                 SaveDataBlocks();
                 SaveToFile();
                 Logger.LogInfo($"ModConfig for \"{this.ModName}\" has been saved.");

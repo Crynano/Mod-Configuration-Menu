@@ -26,11 +26,11 @@ namespace ModConfigMenu
 
         private static string LogPath = Path.Combine(Plugin.MCMConfigPath, LogFileName);
 
-        public static void LogDebug(string message)
+        public static void LogDebug(string message, bool writeToUnity = false)
         {
             // Only will log if debug mode.
 #if DEBUG
-            WriteToLog(message, LogType.Debug);
+            WriteToLog(message, LogType.Debug, writeToUnity);
 #endif
         }
 
