@@ -285,9 +285,11 @@ namespace ModConfigMenu
             errorMessage = string.Empty;
             try
             {
+                // Send dirty values for testing?
+                // If the values are alright, then proceed.
                 if (OnConfigSaved != null)
                 {
-                    bool goodConfig = OnConfigSaved?.Invoke(GetAllValues(), out errorMessage) ?? false;
+                    bool goodConfig = OnConfigSaved?.Invoke(GetDirtyValues(), out errorMessage) ?? false;
                     if (!goodConfig)
                     {
                         return false;
@@ -295,18 +297,19 @@ namespace ModConfigMenu
                 }
                 else if (OnConfigSavedOld != null)
                 {
-                    Logger.LogDebug($"Old config is being saved!", true);
-                    OnConfigSavedOld?.Invoke(GetAllValues());
+                    OnConfigSavedOld?.Invoke(GetDirtyValues());
                 }
                 else
                 {
                     // No event?
-                    Logger.LogError($"No config is being applied.");
+                    Logger.LogError($"No config is being applied. Omitting save completely.");
+                    errorMessage = "No config is being applied. Omitting save completely.";
+                    return false;
                 }
                 // show a message if goodConfig is false
-               
                 SaveDataBlocks();
                 SaveToFile();
+
                 Logger.LogInfo($"ModConfig for \"{this.ModName}\" has been saved.");
                 IsDirty = false;
                 return true;
@@ -324,22 +327,14 @@ namespace ModConfigMenu
 
         internal void SaveToFile()
         {
-            // If the user does not want a file to save to. Then ignore.
             if (!_saveToFile) return;
 
             string finalFilePath = McmFilepath;
-//#if DEBUG
-//            finalFilePath.Replace(".ini", "_debug.ini");
-//#endif
             FileHandler.WriteToFile(finalFilePath, GetPrintableFile());
         }
 
         internal void Discard()
         {
-#if DEBUG
-            UnityEngine.Debug.Log($"ConfigData has been DISCARDED!");
-#endif
-            // First Save all Blocks
             DiscardDataBlocks();
             IsDirty = false;
         }
@@ -366,6 +361,16 @@ namespace ModConfigMenu
             foreach (var singleDataBlock in GetData())
             {
                 result.Add(singleDataBlock.Key, singleDataBlock.Value);
+            }
+            return result;
+        }
+
+        private Dictionary<string, object> GetDirtyValues()
+        {
+            Dictionary<string, object> result = new Dictionary<string, object>();
+            foreach (var singleDataBlock in GetData())
+            {
+                result.Add(singleDataBlock.Key, singleDataBlock.UnstoredValue ?? singleDataBlock.Value);
             }
             return result;
         }
