@@ -70,6 +70,78 @@ namespace ModConfigMenu.Objects
         }
 
         /// <summary>
+        /// A constructor for booleans or colors.
+        /// </summary>
+        /// <param name="key">The key which to identify the configuration.</param>
+        /// <param name="value">The starting value of the configuration.</param>
+        /// <param name="header">Category in UI where to place value under.</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <param name="tooltip">Text that appears when value is hovered. Used to clarify config's functionality</param>
+        /// <param name="label">Alternative name for the variable.</param>
+        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Properties = new List<MetaData>();
+            this.Properties.Add(new MetaData("default", defaultValue));
+            this.Properties.Add(new MetaData("label", label));
+            this.Properties.Add(new MetaData("tooltip", tooltip));
+            this.Header = header;
+        }
+
+        /// <summary>
+        /// A constructor for int variables that has a min-max range asociated.
+        /// </summary>
+        /// <param name="key">The key which to identify the configuration.</param>
+        /// <param name="value">The starting value of the configuration.</param>
+        /// <param name="header">Category in UI where to place value under.</param>
+        /// <param name="min">Minimum value for a range. Only used if it's a numerical value.</param>
+        /// <param name="max">Maximum value for a range. Only used if it's a numerical value.</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <param name="tooltip">Text that appears when value is hovered. Used to clarify config's functionality</param>
+        /// <param name="label">Alternative name for the variable.</param>
+        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label, float min, float max)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Properties = new List<MetaData>();
+            this.Properties.Add(new MetaData("default", defaultValue));
+            this.Properties.Add(new MetaData("label", label));
+            this.Properties.Add(new MetaData("tooltip", tooltip));
+            this.Properties.Add(new MetaData("min", min));
+            this.Properties.Add(new MetaData("max", max));
+            this.Header = header;
+        }
+
+        /// <summary>
+        /// A constructor for dropdowns
+        /// </summary>
+        /// <param name="key">The key which to identify the configuration.</param>
+        /// <param name="value">The starting value of the configuration.</param>
+        /// <param name="header">Category in UI where to place value under.</param>
+        /// <param name="defaultValue">Default value</param>
+        /// <param name="tooltip">Text that appears when value is hovered. Used to clarify config's functionality</param>
+        /// <param name="label">Alternative name for the variable.</param>
+        /// <param name="orderedDropdownOptions">Ordered dropdown options. Only used if the property is a dropdown.</param>
+        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label, List<string> orderedDropdownOptions)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Properties = new List<MetaData>();
+            this.Properties.Add(new MetaData("default", defaultValue));
+            this.Properties.Add(new MetaData("label", label));
+            this.Properties.Add(new MetaData("tooltip", tooltip));
+            if (orderedDropdownOptions != null)
+            {
+                for (int i = 0; i < orderedDropdownOptions.Count; i++)
+                {
+                    this.Properties.Add(new MetaData(i.ToString(), orderedDropdownOptions[i]));
+                }
+            }
+            this.Header = header;
+        }
+
+        /// <summary>
         /// A constructor with all optional-parameters set.
         /// </summary>
         /// <param name="key">The key which to identify the configuration.</param>
@@ -81,7 +153,7 @@ namespace ModConfigMenu.Objects
         /// <param name="tooltip">Text that appears when value is hovered. Used to clarify config's functionality</param>
         /// <param name="label">Alternative name for the variable.</param>
         /// <param name="orderedDropdownOptions">Ordered dropdown options. Only used if the property is a dropdown.</param>
-        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label, List<string> orderedDropdownOptions, Type typeForce, float min = 1.0f, float max = 1.0f)
+        public ConfigValue(string key, object value, string header, object defaultValue, string tooltip, string label, List<string> orderedDropdownOptions, Type typeForce = null, float min = 1.0f, float max = 1.0f)
         {
             this.Key = key;
             this.Value = value;
@@ -91,10 +163,14 @@ namespace ModConfigMenu.Objects
             this.Properties.Add(new MetaData("max", max));
             this.Properties.Add(new MetaData("label", label));
             this.Properties.Add(new MetaData("tooltip", tooltip));
-            this.Properties.Add(new MetaData("type", typeForce));
-            for (int i = 0; i < orderedDropdownOptions.Count; i++)
+            if (typeForce != null)
+                this.Properties.Add(new MetaData("type", typeForce));
+            if (orderedDropdownOptions != null)
             {
-                this.Properties.Add(new MetaData(i.ToString(), orderedDropdownOptions[i]));
+                for (int i = 0; i < orderedDropdownOptions.Count; i++)
+                {
+                    this.Properties.Add(new MetaData(i.ToString(), orderedDropdownOptions[i]));
+                }
             }
             this.Header = header;
         }
@@ -104,7 +180,7 @@ namespace ModConfigMenu.Objects
             var defaultValue = GetDefault();
             if (defaultValue == null)
             {
-                UnityEngine.Debug.LogWarning($"Could not reset default for {Key}");
+                Logger.LogWarning($"Could not reset default for {Key}");
                 return;
             }
             this.Value = defaultValue;
@@ -126,7 +202,7 @@ namespace ModConfigMenu.Objects
             }
 
             msg += $"Value: {Value} as {Value.GetType()}\n";
-            UnityEngine.Debug.Log(msg);
+            Logger.LogDebug(msg);
         }
 
         #endregion
@@ -150,9 +226,7 @@ namespace ModConfigMenu.Objects
         public void SetUnstoredValue<T>(T value)
         {
             if (value == null) return;
-#if DEBUG
-            UnityEngine.Debug.Log($"Setting unstored value {value} as {value.GetType()}");
-#endif
+            Logger.LogDebug($"Setting unstored value {value} as {value.GetType()}");
             this.UnstoredValue = value;
             OnValueChanged?.Invoke();
         }
@@ -180,18 +254,18 @@ namespace ModConfigMenu.Objects
 
         public object GetDefault()
         {
-            Type valueType = Value.GetType();
             var defaultValue = GetPropertyValue("default");
-#if DEBUG
-            UnityEngine.Debug.Log($"Looking for default.\n{Value} is {Value?.GetType()}\nDefault: {defaultValue} is {defaultValue?.GetType()}");
-#endif
+            if (defaultValue == null) return null;
+
+            Type valueType = Value.GetType();
+            //Logger.LogDebug($"Looking for default.\n{Value} is {Value?.GetType()}\nDefault: {defaultValue} is {defaultValue?.GetType()}");
             if (defaultValue.GetType() == valueType)
             {
                 return defaultValue;
                 //return Convert.ChangeType(defaultValue, valueType);
             }
 
-            UnityEngine.Debug.Log($"DataBlock {Key} does not have default value as {valueType}");
+            Logger.LogDebug($"DataBlock {Key} does not have default value as {valueType}");
             return null;
         }
 
@@ -208,7 +282,7 @@ namespace ModConfigMenu.Objects
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"max\" value as float nor int");
+                Logger.LogDebug($"DataBlock {Key} does not have \"max\" value as float nor int");
                 return 1f;
             }
         }
@@ -226,7 +300,7 @@ namespace ModConfigMenu.Objects
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"min\" value as float nor int");
+                Logger.LogDebug($"DataBlock {Key} does not have \"min\" value as float nor int");
                 return 1f;
             }
         }
@@ -267,7 +341,7 @@ namespace ModConfigMenu.Objects
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have a label.");
+                Logger.LogDebug($"DataBlock {Key} does not have a label.");
                 return string.Empty;
             }
         }
@@ -281,7 +355,7 @@ namespace ModConfigMenu.Objects
             }
             else
             {
-                UnityEngine.Debug.Log($"DataBlock {Key} does not have \"description\".");
+                Logger.LogDebug($"DataBlock {Key} does not have \"description\".");
                 return string.Empty;
             }
         }
@@ -312,14 +386,21 @@ namespace ModConfigMenu.Objects
         //    return Comments.Find(x => x.StartsWith(start, StringComparison.CurrentCultureIgnoreCase))?.Replace(start, string.Empty).Trim() ?? string.Empty;
         //}
 
-        public MetaData GetProperty(string name)
+        public MetaData? GetProperty(string name)
         {
-            return Properties.Find(x => x.Key == name);
+            if (Properties.Exists(x => x.Key == name))
+            {
+                return Properties.Find(x => x.Key == name);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public object GetPropertyValue(string name)
         {
-            return GetProperty(name).Value;
+            return GetProperty(name)?.Value ?? null;
         }
 
         //public T GetPropertyValue<T>(string name)

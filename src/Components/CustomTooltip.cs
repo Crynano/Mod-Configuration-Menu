@@ -11,16 +11,31 @@ namespace ModConfigMenu.Components
 {
     public class CustomTooltip : MonoBehaviour
     {
-        private TextMeshProUGUI textBox;
+        //private TextMeshProUGUI textBox;
+        private LocalizableLabel label;
 
-        private void Awake()
+        void Awake()
         {
-            textBox = GetComponentInChildren<TextMeshProUGUI>(true);
+            RegisterComponents();
+        }
+
+        private void RegisterComponents()
+        {
+            if (label != null) return;
+            var textBox = GetComponentInChildren<TextMeshProUGUI>(true);
+            label = textBox.gameObject.AddComponent<LocalizableLabel>();
+            label._textMeshPro = textBox;
+            label._labelContext = TextContext.None;
+            label._coloredFirstLetter = false;
+            label._convertBrToNewLine = false;
+            label._forceUpperCase = false;
         }
 
         public void Show(Vector2 position, string text)
         {
-            this.textBox.text = text;
+            //this.textBox.text = text;
+            RegisterComponents();
+            label.ChangeLabel(text);
             this.transform.position = position;
             this.gameObject.SetActive(true);
         }

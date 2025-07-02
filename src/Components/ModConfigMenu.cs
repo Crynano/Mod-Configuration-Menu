@@ -27,11 +27,11 @@ namespace ModConfigMenu
         private Transform ContentRoot;
 
         private GameObject boolButtonPrefab;
-        private GameObject stringButtonPrefab;
         private GameObject rangeButtonPrefab;
         private GameObject colorButtonPrefab;
         private GameObject dropdownPrefab;
         private GameObject clickableButtonPrefab;
+        private GameObject stringPrefab;
         //private GameObject keybindPrefab;
         private GameObject headerPrefab;
         private GameObject rootPrefab;
@@ -48,25 +48,7 @@ namespace ModConfigMenu
 
         public void Awake()
         {
-            // We need the scroll bar for the mods working
-            //var ModListGO = transform.Find("ModList");
-            //var modListScrollBar = ModListGO.transform.Find("CommonScrollBar");
-            //var scrollBarComponent = modListScrollBar.gameObject.AddComponent<CommonScrollBar>();
-            //scrollBarComponent._canvasGroup = scrollBarComponent.GetComponent<CanvasGroup>();
-            //scrollBarComponent._scrollRect = ModListGO.GetComponentInChildren<ScrollRect>();
-            //scrollBarComponent._selectionBorder = modListScrollBar.transform.Find("SelectionBorder").GetComponent<Image>();
-            //scrollBarComponent._handle = modListScrollBar.transform.Find("Sliding Area").GetComponentInChildren<Image>();
-
-            // And we need the scroll bar for config working
-            //var ConfigAreaGO = transform.Find("ConfigArea");
-            //var configAreaScrollBar = ConfigAreaGO.Find("CommonScrollBar");
-            //var configScrollBarComponent = configAreaScrollBar.gameObject.AddComponent<CommonScrollBar>();
-            //configScrollBarComponent._canvasGroup = configScrollBarComponent.GetComponent<CanvasGroup>();
-            //configScrollBarComponent._scrollRect = ConfigAreaGO.GetComponentInChildren<ScrollRect>();
-            //configScrollBarComponent._selectionBorder = configAreaScrollBar.transform.Find("SelectionBorder").GetComponent<Image>();
-            //configScrollBarComponent._handle = configAreaScrollBar.transform.Find("Sliding Area").GetComponentInChildren<Image>();
-
-            // Gathering the gameSettings to get prefabs.
+             // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
             // Let's find a generic button to modify.
             ModButtonPrefab = gameSettingsScreen.transform.Find("Window").Find("Buttons").Find("BtnGeneral").gameObject;
@@ -83,10 +65,12 @@ namespace ModConfigMenu
             //ConfigureKeybindButtonPrefab();
             ConfigureClickableButtonPrefab();
             ConfigureDropdownPrefab();
+            ConfigureStringPrefab();
 
             rootPrefab = ConfigAreaRoot.Find("Prefabs").Find("Root").gameObject;
             rootPrefab.SetActive(false);
             headerPrefab = ConfigAreaRoot.Find("Prefabs").Find("Header").gameObject;
+            ConfigureLabel(headerPrefab.transform.Find("Label").gameObject, false);
             headerPrefab.SetActive(false);
 
             // We have back button solved.
@@ -155,7 +139,7 @@ namespace ModConfigMenu
             var boolToggle = boolButtonPrefab.transform.Find("Toggle").gameObject;
             boolToggle.AddComponent<OnClickSfx>();
             boolToggle.AddComponent<ToggleWrapper>();
-            boolButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
+            ConfigureLabel(boolButtonPrefab.transform.Find("Label").gameObject);
             boolButtonPrefab.SetActive(false);
         }
 
@@ -163,7 +147,7 @@ namespace ModConfigMenu
         private void ConfigureColorButtonPrefab()
         {
             colorButtonPrefab = PrefabsRoot.Find("ColourConfig").gameObject;
-            colorButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
+            ConfigureLabel(colorButtonPrefab.transform.Find("Label").gameObject);
             colorButtonPrefab.SetActive(false);
         }
 
@@ -181,7 +165,7 @@ namespace ModConfigMenu
             mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
             mgscSliderComponent.Awake();
 
-            rangeButtonPrefab.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
+            ConfigureLabel(rangeButtonPrefab.transform.Find("Label").gameObject);
             rangeButtonPrefab.SetActive(false);
         }
 
@@ -193,8 +177,33 @@ namespace ModConfigMenu
         private void ConfigureDropdownPrefab()
         {
             dropdownPrefab = PrefabsRoot.Find("Dropdown").gameObject;
-            dropdownPrefab?.transform.Find("Label").gameObject.AddComponent<GenericHoverTooltip>();
+            var labelGO = dropdownPrefab?.transform.Find("Label").gameObject;
+            ConfigureLabel(labelGO);
             dropdownPrefab?.SetActive(false);
+        }
+
+        private void ConfigureStringPrefab()
+        {
+            stringPrefab = PrefabsRoot.Find("String").gameObject;
+            var labelGO = stringPrefab?.transform.Find("Label").gameObject;
+            ConfigureLabel(labelGO, false);
+            stringPrefab?.SetActive(false);
+        }
+
+        private void ConfigureLabel(GameObject go, bool hoverable = true)
+        {
+            if (hoverable)
+                go.AddComponent<GenericHoverTooltip>();
+            ConfigureLocalizableLabel(go.AddComponent<LocalizableLabel>());
+        }
+
+        private void ConfigureLocalizableLabel(LocalizableLabel label)
+        {
+            label._coloredFirstLetter = false;
+            label._convertBrToNewLine = false;
+            label._firstLetterUpperCase = false;
+            label._forceUpperCase = true;
+            label._labelContext = TextContext.None;
         }
 
         //private void ConfigureKeybindButtonPrefab()
@@ -356,21 +365,20 @@ namespace ModConfigMenu
             Transform thisContentRoot = rootGameObject.GetComponent<ScrollRect>().content;
             string currentHeader = string.Empty;
 
-            var orderedModData = modData.GetData().OrderBy(x => x.Header);
-            Logger.LogDebug($"Logging ordered values. Same length? {modData.GetData().Count() == orderedModData.Count()} ");
-            foreach (var item in orderedModData)
-            {
-                Logger.LogDebug($"{item.Key} {item.Header}");
-            }
+            // Perform grouping without ordering.
+            var orderedModData = modData.GetData().GroupBy(x => x.Header).ToList().SelectMany(group => group);
 
             foreach (var currentDatablock in orderedModData)
             {
+                bool skipLabel = false;
                 var currentValue = currentDatablock.GetValue();
-                if (!currentHeader.Equals(currentDatablock.Header))
+                bool flag = currentHeader.Equals(currentDatablock.Header);
+                //Logger.LogDebug($"Is {currentDatablock.Header} equal to last header {currentHeader}? {flag}", true);
+                if (!flag)
                 {
                     currentHeader = currentDatablock.Header;
                     var header = GameObject.Instantiate(headerPrefab, thisContentRoot);
-                    header.GetComponentInChildren<TextMeshProUGUI>().text = currentHeader;
+                    header.GetComponentInChildren<LocalizableLabel>().ChangeLabel(currentHeader);
                     header.SetActive(true);
                 }
 
@@ -414,7 +422,7 @@ namespace ModConfigMenu
                         objectSlider.minValue = currentDatablock.GetMin();
                         objectSlider.maxValue = currentDatablock.GetMax();
                         objectSlider.value = (float)intValue;
-                        objectSlider.onValueChanged.AddListener(delegate(float newVal)
+                        objectSlider.onValueChanged.AddListener(delegate (float newVal)
                         {
                             currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
                         });
@@ -504,6 +512,15 @@ namespace ModConfigMenu
                         });
                     });
                 }
+                else if (currentValue is string currentString)
+                {
+                    // Accept strings and only do, string showcase.
+                    skipLabel = true;
+                    goToInstantiate = stringPrefab;
+                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    var customLabel = currentString.Trim('"');
+                    instObj.GetComponentInChildren<LocalizableLabel>().ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
+                }
                 else
                 {
                     Logger.LogError($"Could not create UI. Value \"{currentValue}\" with Type \"{currentValue.GetType()}\" might not be supported, or an error has occurred.");
@@ -516,7 +533,9 @@ namespace ModConfigMenu
 
                 // Label for each object
                 var label = currentDatablock.GetLabel();
-                instObj.GetComponentInChildren<TextMeshProUGUI>().text = !string.IsNullOrEmpty(label) ? label : currentDatablock.Key;
+                //instObj.GetComponentInChildren<TextMeshProUGUI>().text = !string.IsNullOrEmpty(label) ? label : currentDatablock.Key;
+                if (!skipLabel)
+                    instObj.GetComponentInChildren<LocalizableLabel>().ChangeLabel(!string.IsNullOrEmpty(label) ? label : currentDatablock.Key);
                 instObj.SetActive(true);
             }
 
