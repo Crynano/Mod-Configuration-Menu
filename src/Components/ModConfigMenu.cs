@@ -48,6 +48,8 @@ namespace ModConfigMenu
 
         public void Awake()
         {
+            Logger.SetContext("AWAKE");
+            Logger.LogDebug("Awaking ModConfigMenu");
              // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
             // Let's find a generic button to modify.
@@ -100,11 +102,28 @@ namespace ModConfigMenu
                 _customTooltip.name = $"Crynano's " + nameof(CustomTooltip);
                 _customTooltip.gameObject.SetActive(false);
             }
+            Logger.LogDebug("Finished ModConfigMenu Awake");
+            Logger.Flush();
         }
 
         public void Start()
         {
+            Logger.SetContext("START");
+            Logger.LogDebug("Starting ModConfigMenu");
+            try
+            {
             CreateButtonsForEveryMod();
+                Logger.LogDebug("Successfully started ModConfigMenu");
+        }
+            catch (Exception e)
+            {
+                Logger.LogError(e.Message);
+            }
+            finally
+            {
+                Logger.LogDebug("Finished ModConfigMenu Start");
+                Logger.FlushAdditive();
+            }
         }
 
         private void CreateButtonsForEveryMod()
@@ -116,9 +135,6 @@ namespace ModConfigMenu
                 objectButton.ChangeLabel(modName);
                 objectButton.OnClick += delegate
                 {
-#if DEBUG
-                    Debug.Log($"Clicked button to load {modName} config.");
-#endif
                     ModConfig modConfig = ModConfigManager.GetModConfig(modName);
                     ModsRoot.TryGetValue(modName, out Transform root);
                     if (root != null)
@@ -154,14 +170,14 @@ namespace ModConfigMenu
         private void ConfigureRangeButtonPrefab()
         {
             rangeButtonPrefab = PrefabsRoot.Find("RangeConfig").gameObject;
-            var sliderObject = rangeButtonPrefab.transform.Find("Slider").gameObject;
+            var sliderObject = rangeButtonPrefab.transform.Find("Slider").Find("RangeComponent").gameObject;
             var sliderComponent = sliderObject.GetComponent<Slider>();
 
             SliderWrapper mgscSliderComponent = sliderObject.AddComponent<SliderWrapper>();
             mgscSliderComponent._visibleMode = SliderWrapper.VisibleMode.WholeNumbers;
             mgscSliderComponent._slider = sliderComponent;
             mgscSliderComponent._sliderFillBar = sliderObject.transform.Find("Fill Area").Find("Fill").GetComponent<Image>();
-            mgscSliderComponent._valueText = sliderObject.transform.Find("SliderVal").GetComponent<TextMeshProUGUI>();
+            mgscSliderComponent._valueText = sliderObject.transform.parent.Find("SliderValue").Find("Value").GetComponent<TextMeshProUGUI>();
             mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
             mgscSliderComponent.Awake();
 
@@ -418,28 +434,48 @@ namespace ModConfigMenu
                     {
                         goToInstantiate = rangeButtonPrefab;
                         instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                        var objectSlider = instObj.GetComponentInChildren<Slider>();
+                        
+                        var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
+                        var objectSlider = instObj.GetComponentInChildren<Slider>(true);
                         objectSlider.minValue = currentDatablock.GetMin();
                         objectSlider.maxValue = currentDatablock.GetMax();
                         objectSlider.value = (float)intValue;
                         objectSlider.onValueChanged.AddListener(delegate (float newVal)
                         {
                             currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
+                            manualTextComponent.text = newVal.ToString(CultureInfo.InvariantCulture);
                         });
-                        objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
-                            intValue.ToString(CultureInfo.CurrentCulture);
+
+                        // Manual input value
+                        manualTextComponent.text = intValue.ToString();
+                        manualTextComponent.onEndEdit.AddListener((string s) =>
+                        {
+                            // Filter and limit value.
+                            bool result = float.TryParse(s, out float parsedValue);
+                            if (!result) return;
+                            // If the result is valid, limit it and then set it.
+                            int limitedValue =
+                                (int)Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
+                            manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                            objectSlider.value = limitedValue;
+                            currentDatablock.SetUnstoredValue(limitedValue);
+                        });
+
+                        // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
+                        //     intValue.ToString(CultureInfo.CurrentCulture);
                     }
                 }
                 else if (currentValue is float floatValue)
                 {
                     goToInstantiate = rangeButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-
+                    
                     var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
                     wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
                     var bindingText = wrapper._valueText;
                     wrapper._valueText = null;
-
+                    
+                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
                     var objectSlider = instObj.GetComponentInChildren<Slider>();
                     objectSlider.minValue = currentDatablock.GetMin();
                     objectSlider.maxValue = currentDatablock.GetMax();
@@ -449,11 +485,26 @@ namespace ModConfigMenu
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
-                        // Discarding the decimal stuff with the wrapper
-                        // TODO please devs add decimals to your wrapper.
-                        bindingText.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
+                        manualTextComponent.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
                     });
-                    objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = floatValue.ToString("N2", CultureInfo.InvariantCulture);
+
+                    // Manual input value
+                    manualTextComponent.text =  floatValue.ToString("N2", CultureInfo.InvariantCulture);
+                    manualTextComponent.onEndEdit.AddListener((string s) =>
+                    {
+                        // Filter and limit value.
+                        bool result = float.TryParse(s, out float parsedValue);
+                        if (!result) return;
+                        // If the result is valid, limit it and then set it.
+                        float limitedValue =
+                            Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
+                        manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                        objectSlider.value = limitedValue;
+                        currentDatablock.SetUnstoredValue(limitedValue);
+                    });
+
+                    // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
+                    //     floatValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
                 else if (currentValue is double doubleValue)
                 {
@@ -465,6 +516,7 @@ namespace ModConfigMenu
                     var bindingText = wrapper._valueText;
                     wrapper._valueText = null;
 
+                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
                     var objectSlider = instObj.GetComponentInChildren<Slider>();
                     objectSlider.minValue = currentDatablock.GetMin();
                     objectSlider.maxValue = currentDatablock.GetMax();
@@ -474,9 +526,25 @@ namespace ModConfigMenu
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
-                        bindingText.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
+                        manualTextComponent.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
                     });
-                    objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
+                    
+                    // Manual input value
+                    manualTextComponent.text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
+                    manualTextComponent.onEndEdit.AddListener((string s) =>
+                    {
+                        // Filter and limit value.
+                        bool result = float.TryParse(s, out float parsedValue);
+                        if (!result) return;
+                        // If the result is valid, limit it and then set it.
+                        float limitedValue =
+                            Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
+                        manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                        objectSlider.value = limitedValue;
+                        currentDatablock.SetUnstoredValue(limitedValue);
+                    });
+                    
+                    // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
                 else if (currentValue is Color colore)// if (categoryVariables.Value is Color colorValue)
                 {

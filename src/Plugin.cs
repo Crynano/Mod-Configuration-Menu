@@ -19,6 +19,12 @@ namespace ModConfigMenu
         public static string MCMConfigPath = Path.Combine(AllModsConfigPath, "MCM");
 
         public const string MCM_CONTROLLED_SUFFIX = "_mcm";
+        
+        [Hook(ModHookType.BeforeBootstrap)]
+        public static void BeforeBootstrap(IModContext context)
+        {
+            Directory.CreateDirectory(MCMConfigPath);
+        }
 
         [Hook(ModHookType.AfterConfigsLoaded)]
         public static void AfterConfig(IModContext context)
@@ -34,6 +40,7 @@ namespace ModConfigMenu
             // Get a copy of a button
             // Change button of that copy to open our custom UI
             LocalizationHelper.AddKeyToAllDictionaries("ui.mods.desc", "MODS");
+            Logger.LogDebug("Main Menu Started");
 
             var mainMenu = GameObject.FindObjectOfType<MainMenuScreen>(true);
             var menuButtons = mainMenu.transform.Find("MenuButtons");
@@ -48,12 +55,12 @@ namespace ModConfigMenu
             {
                 UI.Chain<ModConfigMenu>().HideAll().Show();
             };
+            Logger.FlushAdditive();
         }
 
         [Hook(ModHookType.ResourcesLoad)]
         public static object LoadCustomResource(System.String path)
         {
-            Logger.LogDebug($"Trying to load custom resoruce \"{path}\"");
             if (!string.IsNullOrEmpty(path))
             {
                 if (path.Contains(nameof(ModConfigMenu)))

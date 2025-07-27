@@ -68,6 +68,20 @@ namespace ModConfigMenu.Objects
             this.Properties.AddRange(properties);
             this.Header = header;
         }
+        
+        /// <summary>
+        /// A constructor for strings
+        /// </summary>
+        /// <param name="key">The key which to identify the configuration.</param>
+        /// <param name="value">The starting value of the configuration.</param>
+        /// <param name="header">Category in UI where to place value under.</param>
+        public ConfigValue(string key, object value, string header)
+        {
+            this.Key = key;
+            this.Value = value;
+            this.Header = header;
+            this.Properties = new List<MetaData>();
+        }
 
         /// <summary>
         /// A constructor for booleans or colors.
