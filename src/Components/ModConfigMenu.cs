@@ -11,6 +11,7 @@ using static MGSC.InputController;
 using System.ComponentModel;
 using System;
 using System.Linq;
+using UnityEngine.Events;
 
 namespace ModConfigMenu
 {
@@ -31,7 +32,9 @@ namespace ModConfigMenu
         private GameObject colorButtonPrefab;
         private GameObject dropdownPrefab;
         private GameObject clickableButtonPrefab;
+
         private GameObject stringPrefab;
+
         //private GameObject keybindPrefab;
         private GameObject headerPrefab;
         private GameObject rootPrefab;
@@ -50,7 +53,7 @@ namespace ModConfigMenu
         {
             Logger.SetContext("AWAKE");
             Logger.LogDebug("Awaking ModConfigMenu");
-             // Gathering the gameSettings to get prefabs.
+            // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
             // Let's find a generic button to modify.
             ModButtonPrefab = gameSettingsScreen.transform.Find("Window").Find("Buttons").Find("BtnGeneral").gameObject;
@@ -94,14 +97,17 @@ namespace ModConfigMenu
             }
 
             // Load custom tooltip from Assetbundle and instantiate.
-            var tooltipToInstantiate = Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "CustomTooltipMessage");
+            var tooltipToInstantiate =
+                Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "CustomTooltipMessage");
             if (tooltipToInstantiate != null)
             {
-                var instObject = Instantiate(tooltipToInstantiate, SingletonMonoBehaviour<TooltipFactory>.Instance.transform);
+                var instObject = Instantiate(tooltipToInstantiate,
+                    SingletonMonoBehaviour<TooltipFactory>.Instance.transform);
                 _customTooltip = instObject.AddComponent<CustomTooltip>();
                 _customTooltip.name = $"Crynano's " + nameof(CustomTooltip);
                 _customTooltip.gameObject.SetActive(false);
             }
+
             Logger.LogDebug("Finished ModConfigMenu Awake");
             Logger.Flush();
         }
@@ -112,9 +118,9 @@ namespace ModConfigMenu
             Logger.LogDebug("Starting ModConfigMenu");
             try
             {
-            CreateButtonsForEveryMod();
+                CreateButtonsForEveryMod();
                 Logger.LogDebug("Successfully started ModConfigMenu");
-        }
+            }
             catch (Exception e)
             {
                 Logger.LogError(e.Message);
@@ -180,6 +186,10 @@ namespace ModConfigMenu
             mgscSliderComponent._valueText = sliderObject.transform.parent.Find("SliderValue").Find("Value").GetComponent<TextMeshProUGUI>();
             mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
             mgscSliderComponent.Awake();
+
+            // Adding a wrapper to unselect automatically when the user cancels.
+            var manualTextComponent = rangeButtonPrefab.GetComponentInChildren<TMP_InputField>(true);
+            manualTextComponent.gameObject.AddComponent<InputTextWrapper>();
 
             ConfigureLabel(rangeButtonPrefab.transform.Find("Label").gameObject);
             rangeButtonPrefab.SetActive(false);
@@ -257,6 +267,7 @@ namespace ModConfigMenu
             {
                 ChangeMod();
             }
+
             return;
 
             void SaveAndChangeMod()
@@ -280,6 +291,7 @@ namespace ModConfigMenu
                 {
                     lastActiveMod.OnConfigChanged -= EnableSaveButton;
                 }
+
                 lastActiveMod = newMod;
                 lastActiveMod.OnConfigChanged += EnableSaveButton;
                 lastActiveModRoot?.gameObject.SetActive(false);
@@ -287,8 +299,6 @@ namespace ModConfigMenu
                 lastActiveModRoot.gameObject.SetActive(true);
             }
         }
-
-
 
         private void CreateNewMod(ModConfig modConfig)
         {
@@ -320,7 +330,11 @@ namespace ModConfigMenu
             UI.Get<ChangeModConfirmationPanel>().Configure(
                 "Reset all to default.".ColorFirstLetter(letterColor),
                 "Are you sure you want to reset all values to default?",
-                () => { ReloadModRoot(true); SaveCurrentMod(); },
+                () =>
+                {
+                    ReloadModRoot(true);
+                    SaveCurrentMod();
+                },
                 null,
                 null
             );
@@ -363,6 +377,12 @@ namespace ModConfigMenu
             _saveButton?.gameObject.SetActive(true);
         }
 
+        private void OnManualTextFocus(bool enable) //(string input, Slider objectSlider, TMP_InputField manualTextComponent)
+        {
+            SingletonMonoBehaviour<InputController>.Instance.enabled = enable;
+            FindObjectOfType<MainMenuGameMode>().enabled = enable;
+        }
+
         /// <summary>
         /// Most important feature. UI Building!
         /// </summary>
@@ -394,7 +414,9 @@ namespace ModConfigMenu
                 {
                     currentHeader = currentDatablock.Header;
                     var header = GameObject.Instantiate(headerPrefab, thisContentRoot);
-                    header.GetComponentInChildren<LocalizableLabel>().ChangeLabel(currentHeader);
+                    var a = header.GetComponentInChildren<LocalizableLabel>();
+                    a._labelContext = TextContext.ButtonCaption;
+                    a.ChangeLabel(currentHeader);
                     header.SetActive(true);
                 }
 
@@ -409,10 +431,7 @@ namespace ModConfigMenu
                     var toggle = instObj.GetComponentInChildren<Toggle>();
                     toggle.isOn = boolValue;
                     toggle.onValueChanged.AddListener(
-                    delegate (bool a)
-                    {
-                        currentDatablock.SetUnstoredValue(a);
-                    });
+                        delegate(bool a) { currentDatablock.SetUnstoredValue(a); });
                 }
                 else if (currentValue is int intValue)
                 {
@@ -425,7 +444,7 @@ namespace ModConfigMenu
                         var dropdown = instObj.GetComponentInChildren<TMP_Dropdown>(true);
                         dropdown.AddOptions(currentDatablock.GetDropdownOptions());
                         dropdown.SetValueWithoutNotify(intValue);
-                        dropdown.onValueChanged.AddListener(delegate (int newIndex)
+                        dropdown.onValueChanged.AddListener(delegate(int newIndex)
                         {
                             currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
                         });
@@ -434,13 +453,13 @@ namespace ModConfigMenu
                     {
                         goToInstantiate = rangeButtonPrefab;
                         instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                        
+
                         var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
                         var objectSlider = instObj.GetComponentInChildren<Slider>(true);
                         objectSlider.minValue = currentDatablock.GetMin();
                         objectSlider.maxValue = currentDatablock.GetMax();
                         objectSlider.value = (float)intValue;
-                        objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                        objectSlider.onValueChanged.AddListener(delegate(float newVal)
                         {
                             currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
                             manualTextComponent.text = newVal.ToString(CultureInfo.InvariantCulture);
@@ -451,16 +470,23 @@ namespace ModConfigMenu
                         manualTextComponent.onEndEdit.AddListener((string s) =>
                         {
                             // Filter and limit value.
+                            if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
+                            
                             bool result = float.TryParse(s, out float parsedValue);
                             if (!result) return;
                             // If the result is valid, limit it and then set it.
                             int limitedValue =
                                 (int)Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                            manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                            manualTextComponent.text = limitedValue.ToString();
                             objectSlider.value = limitedValue;
                             currentDatablock.SetUnstoredValue(limitedValue);
+                            OnManualTextFocus(true);
                         });
-
+                        
+                        manualTextComponent.onSelect.AddListener((string str) =>
+                        {
+                            OnManualTextFocus(false);
+                        });
                         // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
                         //     intValue.ToString(CultureInfo.CurrentCulture);
                     }
@@ -469,19 +495,19 @@ namespace ModConfigMenu
                 {
                     goToInstantiate = rangeButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                    
+
                     var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
                     wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
                     var bindingText = wrapper._valueText;
                     wrapper._valueText = null;
-                    
+
                     var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
                     var objectSlider = instObj.GetComponentInChildren<Slider>();
                     objectSlider.minValue = currentDatablock.GetMin();
                     objectSlider.maxValue = currentDatablock.GetMax();
                     objectSlider.value = floatValue;
                     objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                    objectSlider.onValueChanged.AddListener(delegate(float newVal)
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
@@ -489,18 +515,25 @@ namespace ModConfigMenu
                     });
 
                     // Manual input value
-                    manualTextComponent.text =  floatValue.ToString("N2", CultureInfo.InvariantCulture);
+                    manualTextComponent.text = floatValue.ToString("N2", CultureInfo.InvariantCulture);
                     manualTextComponent.onEndEdit.AddListener((string s) =>
                     {
                         // Filter and limit value.
+                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
                         bool result = float.TryParse(s, out float parsedValue);
                         if (!result) return;
                         // If the result is valid, limit it and then set it.
                         float limitedValue =
                             Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                        manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                        manualTextComponent.text = limitedValue.ToString("N2", CultureInfo.InvariantCulture);
                         objectSlider.value = limitedValue;
                         currentDatablock.SetUnstoredValue(limitedValue);
+                        OnManualTextFocus(true);
+                    });
+                    
+                    manualTextComponent.onSelect.AddListener((string str) =>
+                    {
+                        OnManualTextFocus(false);
                     });
 
                     // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
@@ -522,31 +555,40 @@ namespace ModConfigMenu
                     objectSlider.maxValue = currentDatablock.GetMax();
                     objectSlider.value = (float)doubleValue;
                     objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                    objectSlider.onValueChanged.AddListener(delegate(float newVal)
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
                         manualTextComponent.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
                     });
-                    
+
                     // Manual input value
                     manualTextComponent.text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
                     manualTextComponent.onEndEdit.AddListener((string s) =>
                     {
                         // Filter and limit value.
+                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
                         bool result = float.TryParse(s, out float parsedValue);
                         if (!result) return;
+
                         // If the result is valid, limit it and then set it.
-                        float limitedValue =
-                            Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                        manualTextComponent.text = limitedValue.ToString(CultureInfo.InvariantCulture);
+                        float limitedValue = Mathf.Clamp(parsedValue, currentDatablock.GetMin(),
+                            currentDatablock.GetMax());
+                        manualTextComponent.text = limitedValue.ToString("N2", CultureInfo.InvariantCulture);
                         objectSlider.value = limitedValue;
                         currentDatablock.SetUnstoredValue(limitedValue);
+                        OnManualTextFocus(true);
                     });
                     
+                    // To disable inputs from the game while selected.
+                    manualTextComponent.onSelect.AddListener((string str) =>
+                    {
+                        OnManualTextFocus(false);
+                    });
+
                     // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
                 }
-                else if (currentValue is Color colore)// if (categoryVariables.Value is Color colorValue)
+                else if (currentValue is Color colore) // if (categoryVariables.Value is Color colorValue)
                 {
                     goToInstantiate = colorButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -556,14 +598,15 @@ namespace ModConfigMenu
                     {
                         UI.Chain<ColorPickerController>().Show();
                         var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
-                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate (Color selectedColor)
+                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
                         {
                             currentDatablock.SetUnstoredValue(selectedColor);
                             objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
                         });
                     });
                 }
-                else if (ColorUtility.TryParseHtmlString(currentDatablock.Value.ToString().Replace("\"", string.Empty), out Color colorValue))// if (categoryVariables.Value is Color colorValue)
+                else if (ColorUtility.TryParseHtmlString(currentDatablock.Value.ToString().Replace("\"", string.Empty),
+                             out Color colorValue)) // if (categoryVariables.Value is Color colorValue)
                 {
                     goToInstantiate = colorButtonPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
@@ -573,7 +616,7 @@ namespace ModConfigMenu
                     {
                         UI.Chain<ColorPickerController>().Show();
                         var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
-                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate (Color selectedColor)
+                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
                         {
                             currentDatablock.SetUnstoredValue($"\"#{ColorUtility.ToHtmlStringRGB(selectedColor)}\"");
                             objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
@@ -587,26 +630,29 @@ namespace ModConfigMenu
                     goToInstantiate = stringPrefab;
                     instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
                     var customLabel = currentString.Trim('"');
-                    instObj.GetComponentInChildren<LocalizableLabel>().ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
+                    instObj.GetComponentInChildren<LocalizableLabel>()
+                        .ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
                 }
                 else
                 {
-                    Logger.LogError($"Could not create UI. Value \"{currentValue}\" with Type \"{currentValue.GetType()}\" might not be supported, or an error has occurred.");
+                    Logger.LogError(
+                        $"Could not create UI. Value \"{currentValue}\" with Type \"{currentValue.GetType()}\" might not be supported, or an error has occurred.");
                 }
 
                 if (instObj == null) continue;
 
                 // Visual tooltip to aid in property description
-                instObj.GetComponentInChildren<GenericHoverTooltip>(true)?.Initialize(currentDatablock.GetTooltip(), _customTooltip);
+                instObj.GetComponentInChildren<GenericHoverTooltip>(true)
+                    ?.Initialize(currentDatablock.GetTooltip(), _customTooltip);
 
                 // Label for each object
                 var label = currentDatablock.GetLabel();
                 //instObj.GetComponentInChildren<TextMeshProUGUI>().text = !string.IsNullOrEmpty(label) ? label : currentDatablock.Key;
                 if (!skipLabel)
-                    instObj.GetComponentInChildren<LocalizableLabel>().ChangeLabel(!string.IsNullOrEmpty(label) ? label : currentDatablock.Key);
+                    instObj.GetComponentInChildren<LocalizableLabel>()
+                        .ChangeLabel(!string.IsNullOrEmpty(label) ? label : currentDatablock.Key);
                 instObj.SetActive(true);
             }
-
 
             /*var keyBindManager = GameObject.Instantiate(keyBindPrefab, thisContentRoot).GetComponent<GameKeySetupPanel>();
             if (keyBindManager != null)
