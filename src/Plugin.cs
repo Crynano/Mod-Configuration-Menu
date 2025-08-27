@@ -55,7 +55,7 @@ namespace ModConfigMenu
             {
                 UI.Chain<ModConfigMenu>().HideAll().Show();
             };
-            Logger.FlushAdditive();
+            Logger.Flush();
         }
 
         [Hook(ModHookType.ResourcesLoad)]

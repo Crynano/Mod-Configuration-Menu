@@ -51,8 +51,7 @@ namespace ModConfigMenu
 
         public void Awake()
         {
-            Logger.SetContext("AWAKE");
-            Logger.LogDebug("Awaking ModConfigMenu");
+            Logger.LogDebug("Awake(): Starting ModConfigMenu");
             // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
             // Let's find a generic button to modify.
@@ -108,18 +107,16 @@ namespace ModConfigMenu
                 _customTooltip.gameObject.SetActive(false);
             }
 
-            Logger.LogDebug("Finished ModConfigMenu Awake");
-            Logger.Flush();
+            Logger.LogDebug("Awake(): Finished");
         }
 
         public void Start()
         {
-            Logger.SetContext("START");
-            Logger.LogDebug("Starting ModConfigMenu");
+            Logger.LogDebug("Start(): Starting ModConfigMenu");
             try
             {
                 CreateButtonsForEveryMod();
-                Logger.LogDebug("Successfully started ModConfigMenu");
+                Logger.LogDebug("Start(): Successfully started ModConfigMenu");
             }
             catch (Exception e)
             {
@@ -127,16 +124,18 @@ namespace ModConfigMenu
             }
             finally
             {
-                Logger.LogDebug("Finished ModConfigMenu Start");
-                Logger.FlushAdditive();
+                Logger.LogDebug("Start(): Finished ModConfigMenu Start");
+                Logger.Flush();
             }
         }
 
         private void CreateButtonsForEveryMod()
         {
-            foreach (var modName in ModConfigManager.ModsList)
+            foreach (var modName in ModConfigManager.ModsList.OrderBy(x => x).ToList())
             {
                 var buttonObject = GameObject.Instantiate(ModButtonPrefab, ModListRoot);
+                buttonObject.name = $"[{modName.Replace(" ", string.Empty)}]";
+
                 var objectButton = buttonObject.GetComponent<CommonButton>();
                 objectButton.ChangeLabel(modName);
                 objectButton.OnClick += delegate

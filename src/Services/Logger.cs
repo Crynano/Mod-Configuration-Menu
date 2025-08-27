@@ -15,7 +15,7 @@ namespace ModConfigMenu
             Debug
         }
 
-        private static string LogFileName => $"Log_{DateTime.Now.ToString(@"dd_MM_yyyy")}.log";
+        private static string LogFileName => $"Log.log";
         private static string LogSignature { get; set; } = "ModConfigMenu";
 
         private static string LogStart => $"[{DateTime.Now.ToString()}][{LogSignature}][START] ----------- Log Start -----------\n";
