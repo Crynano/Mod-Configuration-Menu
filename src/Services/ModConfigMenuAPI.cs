@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using ModConfigMenu.Contracts;
 using ModConfigMenu.Objects;
 
 namespace ModConfigMenu
@@ -43,7 +45,19 @@ namespace ModConfigMenu
         /// <param name="modName">The label for your mod. Used to display a beautified name for your mod in the UI.</param>
         /// <param name="configData">Your mod data, passing a list of ConfigValues. A configValue is one configurable parameter from your mod.</param>
         /// <param name="OnConfigSaved">This delegate will be executed every time your mod config is saved in-game. It will include all properties in your modconfig, indexed by the same name you configured in configData.</param>
+        [Obsolete("This method is now deprecated. Please use RegisterModConfig(string, List<IConfigValue>, ConfigStoredDelegate) instead.")]
         public static void RegisterModConfig(string modName, List<ConfigValue> configData, ConfigStoredDelegate OnConfigSaved)
+        {
+            ModConfigManager.LoadModData(modName, configData: configData.Cast<IConfigValue>().ToList(), OnConfigSaved: OnConfigSaved);
+        }
+
+        /// <summary>
+        /// Register a mod to allow MCM to configure it via UI.
+        /// </summary>
+        /// <param name="modName">The label for your mod. Used to display a beautified name for your mod in the UI.</param>
+        /// <param name="configData">Your mod data, passing a list of IConfigValue. Each child of said Interface implies its own UI.</param>
+        /// <param name="OnConfigSaved">This delegate will be executed every time your mod config is saved in-game. It will include all properties in your modconfig, indexed by the same name you configured in configData.</param>
+        public static void RegisterModConfig(string modName, List<IConfigValue> configData, ConfigStoredDelegate OnConfigSaved)
         {
             ModConfigManager.LoadModData(modName, configData, OnConfigSaved);
         }

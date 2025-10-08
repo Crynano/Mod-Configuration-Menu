@@ -1,8 +1,10 @@
-﻿using System;
+﻿using ModConfigMenu.Contracts;
+using ModConfigMenu.Objects;
+using Rewired.Data;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ModConfigMenu.Objects;
 using UnityEngine;
 using static ModConfigMenu.ModConfigMenuAPI;
 
@@ -71,6 +73,30 @@ namespace ModConfigMenu
             Logger.Flush();
         }
 
+        ///// <summary>
+        ///// This one loads from a list of configs. Does not use any .ini
+        ///// </summary>
+        ///// <param name="modName"></param>
+        ///// <param name="configData"></param>
+        ///// <param name="OnConfigSaved"></param>
+        ///// <returns></returns>
+        //public static bool LoadModData(string modName, List<ConfigValue> configData, ConfigStoredDelegate OnConfigSaved)
+        //{
+        //    Logger.SetContext(modName);
+        //    Logger.LogDebug($"Mod is being registered with data-block list.");
+        //    if (configData == null || configData.Count <= 0)
+        //    {
+        //        Logger.LogError($"ERROR: ConfigData for Mod \"{modName}\" is null or empty.");
+        //        return false;
+        //    }
+
+        //    ModConfig modConfigData = new ModConfig(modName, userData: configData, OnConfigSaved);
+        //    allModsConfigData.Add(modName, modConfigData);
+        //    Logger.ClearContext();
+        //    Logger.Flush();
+        //    return true;
+        //}
+
         /// <summary>
         /// This one loads from a list of configs. Does not use any .ini
         /// </summary>
@@ -78,7 +104,7 @@ namespace ModConfigMenu
         /// <param name="configData"></param>
         /// <param name="OnConfigSaved"></param>
         /// <returns></returns>
-        public static bool LoadModData(string modName, List<ConfigValue> configData, ConfigStoredDelegate OnConfigSaved)
+        public static bool LoadModData(string modName, List<IConfigValue> configData, ConfigStoredDelegate OnConfigSaved)
         {
             Logger.SetContext(modName);
             Logger.LogDebug($"Mod is being registered with data-block list.");

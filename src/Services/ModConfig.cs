@@ -9,6 +9,7 @@ using ModConfigMenu.Services;
 using ModConfigMenu.Objects;
 using ModConfigMenu.Components;
 using static ModConfigMenu.ModConfigMenuAPI;
+using ModConfigMenu.Contracts;
 
 namespace ModConfigMenu
 {
@@ -20,7 +21,7 @@ namespace ModConfigMenu
 
         private string McmFilepath => FileHandler.GetModControlledFilename(filePath);
 
-        private List<ConfigValue> data;
+        private List<IConfigValue> data;
 
         public bool IsDirty { get; private set; } = false;
 
@@ -38,7 +39,7 @@ namespace ModConfigMenu
             this.ModName = modName;
             this.filePath = filePath;
             this.OnConfigSavedOld = OnConfigSaved;
-            this.data = new List<ConfigValue>();
+            this.data = new List<IConfigValue>();
         }
 
         public ModConfig(string modName, string filePath, ConfigStoredDelegate OnConfigSaved)
@@ -46,10 +47,10 @@ namespace ModConfigMenu
             this.ModName = modName;
             this.filePath = filePath;
             this.OnConfigSaved = OnConfigSaved;
-            this.data = new List<ConfigValue>();
+            this.data = new List<IConfigValue>();
         }
 
-        public ModConfig(string modName, List<ConfigValue> userData, ConfigStoredDelegate OnConfigSaved, bool saveToFile = false)
+        public ModConfig(string modName, List<IConfigValue> userData, ConfigStoredDelegate OnConfigSaved, bool saveToFile = false)
         {
             // Directly load data. No files related.
             this.ModName = modName;
@@ -68,7 +69,7 @@ namespace ModConfigMenu
             // Use a new filepath
             // It is loaded inside the new constructor
             // If MCM config exists, then compare it to original.
-            List<ConfigValue> mcmData = new List<ConfigValue>();
+            List<IConfigValue> mcmData = new List<IConfigValue>();
 
             if (File.Exists(McmFilepath))
             {
@@ -91,8 +92,8 @@ namespace ModConfigMenu
             // Import MCM config
             // Import Original config.
             // If MCM config exists, then compare it to original.
-            List<ConfigValue> mcmData = new List<ConfigValue>();
-            List<ConfigValue> originalData = new List<ConfigValue>();
+            List<IConfigValue> mcmData = new List<IConfigValue>();
+            List<IConfigValue> originalData = new List<IConfigValue>();
 
             if (File.Exists(McmFilepath))
             {
@@ -128,13 +129,13 @@ namespace ModConfigMenu
             }
         }
 
-        private List<ConfigValue> ParseFile(string filepath)
+        private List<IConfigValue> ParseFile(string filepath)
         {
-            List<ConfigValue> localData = new List<ConfigValue>();
+            List<IConfigValue> localData = new List<IConfigValue>();
             string[] lines = File.ReadAllLines(filepath);
             string currentSection = string.Empty;
 
-            ConfigValue currentBlock = new ConfigValue();
+            IConfigValue currentBlock = new ConfigValue();
 
             foreach (string line in lines)
             {
@@ -191,7 +192,7 @@ namespace ModConfigMenu
             return localData;
         }
 
-        private List<ConfigValue> UpdateData(List<ConfigValue> userData, List<ConfigValue> originalModData)
+        private List<IConfigValue> UpdateData(List<IConfigValue> userData, List<IConfigValue> originalModData)
         {
             // For each value of the original, get the value in the userData. Otherwise, keep it default.
             // If a value is in the userdata, just ignore that.
@@ -375,7 +376,7 @@ namespace ModConfigMenu
             return result;
         }
 
-        public List<ConfigValue> GetData()
+        public List<IConfigValue> GetData()
         {
             return data;
         }

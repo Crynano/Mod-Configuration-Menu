@@ -41,7 +41,7 @@ namespace ModConfigMenu
 
         public static void LogWarning(string message)
         {
-            WriteToLog(message, LogType.Warning);
+            WriteToLog(message, LogType.Warning, true);
         }
 
         public static void LogError(string message)

@@ -1,17 +1,19 @@
 ﻿using MGSC;
-using System.Collections.Generic;
-using System.Globalization;
 using ModConfigMenu.Components;
+using ModConfigMenu.Contracts;
+using ModConfigMenu.Objects;
 using ModConfigMenu.Services;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-using Debug = UnityEngine.Debug;
-using static MGSC.InputController;
-using System.ComponentModel;
-using System;
-using System.Linq;
 using UnityEngine.Events;
+using UnityEngine.UI;
+using static MGSC.InputController;
+using Debug = UnityEngine.Debug;
 
 namespace ModConfigMenu
 {
@@ -396,7 +398,6 @@ namespace ModConfigMenu
             }
 
             Transform rootGameObject = GameObject.Instantiate(rootPrefab, ContentRoot).transform;
-            //rootGameObject.transform.parent = ContentRoot;
             Transform thisContentRoot = rootGameObject.GetComponent<ScrollRect>().content;
             string currentHeader = string.Empty;
 
@@ -405,53 +406,69 @@ namespace ModConfigMenu
 
             foreach (var currentDatablock in orderedModData)
             {
-                bool skipLabel = false;
-                var currentValue = currentDatablock.GetValue();
-                bool flag = currentHeader.Equals(currentDatablock.Header);
-                //Logger.LogDebug($"Is {currentDatablock.Header} equal to last header {currentHeader}? {flag}", true);
-                if (!flag)
+                var currentValue = currentDatablock.Value;
+                // Header handling
+                if (!string.Equals(currentHeader, currentDatablock.Header, StringComparison.Ordinal))
                 {
                     currentHeader = currentDatablock.Header;
-                    var header = GameObject.Instantiate(headerPrefab, thisContentRoot);
-                    var a = header.GetComponentInChildren<LocalizableLabel>();
-                    a._labelContext = TextContext.ButtonCaption;
-                    a.ChangeLabel(currentHeader);
-                    header.SetActive(true);
+                    InstantiateHeader(currentHeader, thisContentRoot);
                 }
 
-                var goToInstantiate = boolButtonPrefab;
                 GameObject instObj = null;
+                bool skipLabel = false;
 
                 // Forced type. For example dropdown.
                 if (currentValue is bool boolValue)
                 {
-                    goToInstantiate = boolButtonPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(boolButtonPrefab, thisContentRoot);
                     var toggle = instObj.GetComponentInChildren<Toggle>();
                     toggle.isOn = boolValue;
                     toggle.onValueChanged.AddListener(
                         delegate(bool a) { currentDatablock.SetUnstoredValue(a); });
                 }
+                else if (currentDatablock is DropdownConfig dropdownConfig)
+                {
+                    instObj = GameObject.Instantiate(dropdownPrefab, thisContentRoot);
+                    var dropdown = instObj.GetComponentInChildren<TMP_Dropdown>(true);
+
+                    // Get options as objects but cast to int for display.
+                    var dropdownOptions = currentDatablock.GetDropdownOptions();
+                    dropdown.AddOptions(dropdownOptions.Select(x => x.ToString()).ToList());
+
+                    var defaultOption = dropdownConfig.GetDefault();
+                    var defaultValueIndex = dropdownOptions.FindIndex(x => x.Equals(defaultOption));
+
+                    if(defaultValueIndex < 0)
+                    {
+                        Logger.LogWarning($"Default option for dropdown: {dropdownConfig.GetLabel()}, Value: \"{defaultOption}\" could not be found in list. Defaulting to first value.");
+                        defaultValueIndex = 0;
+                    }    
+
+                    dropdown.SetValueWithoutNotify(defaultValueIndex);
+                    dropdown.onValueChanged.AddListener(delegate (int newIndex)
+                    {
+                        currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
+                    });
+                }
                 else if (currentValue is int intValue)
                 {
-                    if (currentDatablock.GetTypeProp().ToLower().Equals("dropdown"))
-                    {
-                        // Create a dropdown but behave as an int.
-                        // Get options, and their string counterparts.
-                        goToInstantiate = dropdownPrefab;
-                        instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                        var dropdown = instObj.GetComponentInChildren<TMP_Dropdown>(true);
-                        dropdown.AddOptions(currentDatablock.GetDropdownOptions());
-                        dropdown.SetValueWithoutNotify(intValue);
-                        dropdown.onValueChanged.AddListener(delegate(int newIndex)
-                        {
-                            currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
-                        });
-                    }
-                    else
-                    {
-                        goToInstantiate = rangeButtonPrefab;
-                        instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    //if (currentDatablock.GetTypeProp().ToLower().Equals("dropdown"))
+                    //{
+                    //    // Create a dropdown but behave as an int.
+                    //    // Get options, and their string counterparts.
+                    //    goToInstantiate = dropdownPrefab;
+                    //    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    //    var dropdown = instObj.GetComponentInChildren<TMP_Dropdown>(true);
+                    //    dropdown.AddOptions(currentDatablock.GetDropdownOptions());
+                    //    dropdown.SetValueWithoutNotify(intValue);
+                    //    dropdown.onValueChanged.AddListener(delegate(int newIndex)
+                    //    {
+                    //        currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
+                    //    });
+                    //}
+                    //else
+                    //{
+                        instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
 
                         var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
                         var objectSlider = instObj.GetComponentInChildren<Slider>(true);
@@ -488,12 +505,11 @@ namespace ModConfigMenu
                         });
                         // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
                         //     intValue.ToString(CultureInfo.CurrentCulture);
-                    }
+                    //}
                 }
                 else if (currentValue is float floatValue)
                 {
-                    goToInstantiate = rangeButtonPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
 
                     var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
                     wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
@@ -540,8 +556,7 @@ namespace ModConfigMenu
                 }
                 else if (currentValue is double doubleValue)
                 {
-                    goToInstantiate = rangeButtonPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
 
                     var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
                     wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
@@ -589,8 +604,7 @@ namespace ModConfigMenu
                 }
                 else if (currentValue is Color colore) // if (categoryVariables.Value is Color colorValue)
                 {
-                    goToInstantiate = colorButtonPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(colorButtonPrefab, thisContentRoot);
                     var objectButton = instObj.GetComponentInChildren<Button>();
                     objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = colore;
                     objectButton.onClick.AddListener(() =>
@@ -607,8 +621,7 @@ namespace ModConfigMenu
                 else if (ColorUtility.TryParseHtmlString(currentDatablock.Value.ToString().Replace("\"", string.Empty),
                              out Color colorValue)) // if (categoryVariables.Value is Color colorValue)
                 {
-                    goToInstantiate = colorButtonPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(colorButtonPrefab, thisContentRoot);
                     var objectButton = instObj.GetComponentInChildren<Button>();
                     objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = colorValue;
                     objectButton.onClick.AddListener(() =>
@@ -626,8 +639,7 @@ namespace ModConfigMenu
                 {
                     // Accept strings and only do, string showcase.
                     skipLabel = true;
-                    goToInstantiate = stringPrefab;
-                    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
+                    instObj = GameObject.Instantiate(stringPrefab, thisContentRoot);
                     var customLabel = currentString.Trim('"');
                     instObj.GetComponentInChildren<LocalizableLabel>()
                         .ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
@@ -653,131 +665,62 @@ namespace ModConfigMenu
                 instObj.SetActive(true);
             }
 
-            /*var keyBindManager = GameObject.Instantiate(keyBindPrefab, thisContentRoot).GetComponent<GameKeySetupPanel>();
-            if (keyBindManager != null)
+            return rootGameObject;
+        }
+
+        // Helper: header instantiation
+        private void InstantiateHeader(string headerText, Transform parent)
+        {
+            if (string.IsNullOrEmpty(headerText)) return;
+            var header = InstantiatePrefab(headerPrefab, parent);
+            if (header == null) return;
+            var lbl = header.GetComponentInChildren<LocalizableLabel>();
+            if (lbl != null)
             {
-                var kTransform = keyBindManager._label.transform;
-                kTransform.transform.position = kTransform.position - Vector3.left * 7f;
-                keyBindManager._label.text = "Custom Test Label";
-                keyBindManager._label.fontStyle = FontStyles.UpperCase & FontStyles.Normal;
-                var tooltip = keyBindManager._label.gameObject.AddComponent<GenericHoverTooltip>();
-                tooltip.Initialize("Testing the tooltip.");
-                // The record here will be from ini
-                // You can init everything with none?
-                // you could default some key as keybind one
-                // and then that's pretty much it.
-                LocalizationHelper.AddKeyToAllDictionaries($"gamekey.Test_{modData.ModName}.desc", "TEST KEY!");
-                GameKeyRecord record = new GameKeyRecord
+                lbl._labelContext = TextContext.ButtonCaption;
+                lbl.ChangeLabel(headerText);
+            }
+            header.SetActive(true);
+        }
+
+        // Helper: instantiate prefab safely
+        private GameObject InstantiatePrefab(GameObject prefab, Transform parent)
+        {
+            if (prefab == null)
+            {
+                Logger.LogError("Prefab is null when trying to instantiate.");
+                return null;
+            }
+            var o = GameObject.Instantiate(prefab, parent);
+            return o;
+        }
+
+        // Helper: color button configuration
+        private void ConfigureColorButton(GameObject instObj, Color initialColor, bool storeAsString, BaseConfig config)
+        {
+            var button = instObj.GetComponentInChildren<Button>();
+            if (button == null) return;
+            var preview = button.transform.Find("ColorPreview")?.GetComponent<Image>();
+            if (preview != null) preview.color = initialColor;
+
+            button.onClick.AddListener(() =>
+            {
+                UI.Chain<ColorPickerController>().Show();
+                var currentColor = preview != null ? preview.color : initialColor;
+                UI.Get<ColorPickerController>().ConfigureButtons(currentColor, (selectedColor) =>
                 {
-                    Id = $"Test_{modData.ModName}",
-                    ContentDescriptor = null,
-                    Layout = "",
-                    OtherKeyIdToPress = "",
-                    Bind1 = new List<KeyCode>()
+                    if (storeAsString)
                     {
-                        KeyCode.Backslash
-                    },
-                    Bind2 = new List<KeyCode>()
-                    {
-                        KeyCode.None
-                    },
-                    ControllerBind1 = new List<ControllerAction>()
-                    {
-                        ControllerAction.None
-                    },
-                    ControllerBind2 = new List<ControllerAction>()
-                    {
-                        ControllerAction.None
-                    },
-                    ImmutableBind1 = false,
-                    ImmutableBind2 = false,
-                    ImmutableControllerBind1 = false,
-                    ImmutableControllerBind2 = false,
-                    AxisName = "",
-                    MovementVector = default,
-                    ExclusiveInputMode = new List<InputMode>()
-                    {
-                        InputMode.KeyboardAndMouse,
-                        InputMode.KeyboardOnly
-                    },
-                    ForbiddenKeysToBind = new List<KeyCode>() { KeyCode.None }
-                };
-
-                // In-game key should be the amount of records there are right now
-                int num = Data.Keybinding.Count;
-
-                List<string> list = new List<string>();
-
-                GameKey gameKey = new GameKey(record, num++);
-
-
-                if (!list.Contains(record.Layout))
-                {
-                    list.Add(record.Layout);
-                }
-
-                var inputController = SingletonMonoBehaviour<InputController>.Instance;
-                inputController._keys.Add(gameKey);
-                inputController._idsToKeys.Add(record.Id, gameKey);
-
-                keyBindManager.OnSlotClicked += delegate(GameKeySetupPanel panel, int arg2)
-                {
-                    UI.Chain<BindGameKeyWindow>().Invoke(delegate(BindGameKeyWindow v)
-                    {
-                        v.Configure(panel.GameKey);
-
-                    }).Show();
-                };
-
-                keyBindManager.OnDeleteBind += delegate(GameKeySetupPanel arg1, int arg2)
-                {
-                    if (arg2 == 0)
-                    {
-                        if (!InputHelper.IsNotSet(arg1.GameKey.Bind1))
-                        {
-                            arg1.GameKey.Bind1.Clear();
-                            arg1.GameKey.Bind1.Add(KeyCode.None);
-                            keyBindManager.Initialize(arg1.GameKey);
-                        }
-                    }
-                    else if (!InputHelper.IsNotSet(arg1.GameKey.Bind2))
-                    {
-                        arg1.GameKey.Bind2.Clear();
-                        arg1.GameKey.Bind2.Add(KeyCode.None);
-                        keyBindManager.Initialize(arg1.GameKey);
-                    }
-
-                    arg1.GameKey.Save();
-                    SingletonMonoBehaviour<InputController>.Instance.RaiseKeyChange(arg1.GameKey.Record.Id);
-                    PlayerPrefs.Save();
-                };
-                keyBindManager.Initialize(gameKey);
-
-                gameKey.Load();
-                var _player = Rewired.ReInput.players.GetPlayer(0);
-
-                foreach (var item in list)
-                {
-                    // Check if there's an existing one.
-                    if (inputController._keymaps.ContainsKey(item))
-                    {
-                        inputController._keymaps.TryGetValue(item, out Keymap modifiableKeymap);
-                        modifiableKeymap?._keys.Add(gameKey);
-                        modifiableKeymap?.Recalculate(inputController.Mode);
+                        config.SetUnstoredValue($"\"#{ColorUtility.ToHtmlStringRGB(selectedColor)}\"");
                     }
                     else
                     {
-                        Keymap keymap = new Keymap(_player, item, inputController._keys);
-                        inputController._keymaps.Add(item, keymap);
-                        keymap.Recalculate(inputController.Mode);
+                        config.SetUnstoredValue(selectedColor);
                     }
-                }
 
-                keyBindManager.gameObject.SetActive(true);
-            }
-            */
-
-            return rootGameObject;
+                    if (preview != null) preview.color = selectedColor;
+                });
+            });
         }
     }
 }
