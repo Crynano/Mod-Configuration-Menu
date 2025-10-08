@@ -433,6 +433,11 @@ namespace ModConfigMenu
 
                     // Get options as objects but cast to int for display.
                     var dropdownOptions = currentDatablock.GetDropdownOptions();
+                    if (dropdownOptions.Count <= 0)
+                    {
+                        Logger.LogError($"No valid dropdown options available one of the dropdowns in: {modData.ModName}");
+                        continue;
+                    }
                     dropdown.AddOptions(dropdownOptions.Select(x => x.ToString()).ToList());
 
                     var defaultOption = dropdownConfig.GetDefault();

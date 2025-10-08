@@ -55,7 +55,7 @@ namespace ModConfigMenu
             // Directly load data. No files related.
             this.ModName = modName;
             this.data = userData;
-            foreach (ConfigValue entryData in this.data)
+            foreach (IConfigValue entryData in this.data)
             {
                 entryData.OnValueChanged += DataBlockChanged;
             }

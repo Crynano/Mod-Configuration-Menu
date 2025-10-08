@@ -120,16 +120,7 @@ namespace ModConfigMenu.Contracts
 
         public List<object> GetDropdownOptions()
         {
-            List<object> returnVal = new List<object>();
-            foreach (var comment in Properties)
-            {
-                if (int.TryParse(comment.Key, out int result))
-                {
-                    Logger.LogDebug($"Dropdown option for {comment.Key} is {comment.Value}");
-                    returnVal.Add(comment.Value as string);
-                }
-            }
-            return returnVal;
+            return GetProperty("dropdowns")?.Value as List<object> ?? new List<object>();
         }
 
         public string GetLabel()

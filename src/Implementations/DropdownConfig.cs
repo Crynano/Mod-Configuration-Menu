@@ -34,9 +34,8 @@ namespace ModConfigMenu.Objects
                 new MetaData("default", defaultValue),
                 new MetaData("tooltip", tooltip),
                 new MetaData("label", label),
+                new MetaData("dropdowns", orderedDropdownOptions)
             };
-
-            orderedDropdownOptions.ForEach(option => { this.Properties.Add(new MetaData(option.ToString(), option)); });
         }
     }
 }
