@@ -1,9 +1,6 @@
 ﻿using MGSC;
 using ModConfigMenu.Components;
-using ModConfigMenu.Objects;
 using ModConfigMenu.Services;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEngine;
@@ -24,12 +21,6 @@ namespace ModConfigMenu
         public static void BeforeBootstrap(IModContext context)
         {
             Directory.CreateDirectory(MCMConfigPath);
-        }
-
-        [Hook(ModHookType.AfterConfigsLoaded)]
-        public static void AfterConfig(IModContext context)
-        {
-            // Do nothing here.
         }
 
         [Hook(ModHookType.MainMenuStarted)]

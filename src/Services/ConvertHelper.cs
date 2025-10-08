@@ -19,7 +19,7 @@ namespace ModConfigMenu.Services
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError($"Error on Explicit Type Conversion. Could not convert {value} to {implicitConversion}");
+                    Logger.LogError($"ConvertHelper.ConvertValue(): Could not convert {value} to {implicitConversion}.\n{ex.Message}");
                 }
             }
 
