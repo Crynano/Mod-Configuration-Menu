@@ -32,13 +32,13 @@
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="Rewired_Core">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Rewired_Core.dll</HintPath>
+		  <HintPath>$(ManagedPath)Rewired_Core.dll</HintPath>
 		</Reference>
 		<Reference Include="Rewired_Windows">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Rewired_Windows.dll</HintPath>
+		  <HintPath>$(ManagedPath)Rewired_Windows.dll</HintPath>
 		</Reference>
 		<Reference Include="Unity.TextMeshPro">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+		  <HintPath>$(ManagedPath)Unity.TextMeshPro.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
 			<SpecificVersion>False</SpecificVersion>
@@ -46,7 +46,7 @@
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.AssetBundleModule">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+		  <HintPath>$(ManagedPath)UnityEngine.AssetBundleModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
 			<SpecificVersion>False</SpecificVersion>
@@ -59,13 +59,13 @@
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UI">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UI.dll</HintPath>
+		  <HintPath>$(ManagedPath)UnityEngine.UI.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIElementsModule">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+		  <HintPath>$(ManagedPath)UnityEngine.UIElementsModule.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine.UIModule">
-		  <HintPath>D:\SteamLibrary\steamapps\common\Quasimorph\Quasimorph_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+		  <HintPath>$(ManagedPath)UnityEngine.UIModule.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 	<ItemGroup>
