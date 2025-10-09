@@ -452,7 +452,8 @@ namespace ModConfigMenu
                     dropdown.SetValueWithoutNotify(defaultValueIndex);
                     dropdown.onValueChanged.AddListener(delegate (int newIndex)
                     {
-                        currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
+                        var dropdownOption = dropdownOptions[newIndex];
+                        currentDatablock.SetUnstoredValue(dropdownOption);
                     });
                 }
                 else if (currentValue is int intValue)
