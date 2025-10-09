@@ -1,6 +1,7 @@
 ﻿using MGSC;
 using ModConfigMenu.Components;
 using ModConfigMenu.Contracts;
+using ModConfigMenu.Implementations;
 using ModConfigMenu.Objects;
 using ModConfigMenu.Services;
 using System;
@@ -458,136 +459,34 @@ namespace ModConfigMenu
                 }
                 else if (currentValue is int intValue)
                 {
-                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
-
-                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
-                    var objectSlider = instObj.GetComponentInChildren<Slider>(true);
-                    objectSlider.minValue = currentDatablock.GetMin();
-                    objectSlider.maxValue = currentDatablock.GetMax();
-                    objectSlider.value = (float)intValue;
-                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
-                    {
-                        currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
-                        manualTextComponent.text = newVal.ToString(CultureInfo.InvariantCulture);
-                    });
-
-                    // Manual input value
-                    manualTextComponent.text = intValue.ToString();
-                    manualTextComponent.onEndEdit.AddListener((string s) =>
-                    {
-                        // Filter and limit value.
-                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
-
-                        bool result = float.TryParse(s, out float parsedValue);
-                        if (!result) return;
-                        // If the result is valid, limit it and then set it.
-                        int limitedValue =
-                            (int)Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                        manualTextComponent.text = limitedValue.ToString();
-                        objectSlider.value = limitedValue;
-                        currentDatablock.SetUnstoredValue(limitedValue);
-                        OnManualTextFocus(true);
-                    });
-
-                    manualTextComponent.onSelect.AddListener((string str) =>
-                    {
-                        OnManualTextFocus(false);
-                    });
+                    // integer slider + manual input
+                    instObj = CreateRangeControl(
+                        currentDatablock,
+                        initialValue: intValue,
+                        wholeNumbers: true,
+                        format: "F0", 
+                        thisContentRoot,
+                        setUnstoredFloat: f => currentDatablock.SetUnstoredValue((int)Mathf.Round(f)));
                 }
                 else if (currentValue is float floatValue)
                 {
-                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
-
-                    var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
-                    wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
-                    var bindingText = wrapper._valueText;
-                    wrapper._valueText = null;
-
-                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
-                    var objectSlider = instObj.GetComponentInChildren<Slider>();
-                    objectSlider.minValue = currentDatablock.GetMin();
-                    objectSlider.maxValue = currentDatablock.GetMax();
-                    objectSlider.value = floatValue;
-                    objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
-                    {
-                        float correctedVal = (float)Math.Round(newVal, 2);
-                        currentDatablock.SetUnstoredValue(correctedVal);
-                        manualTextComponent.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
-                    });
-
-                    // Manual input value
-                    manualTextComponent.text = floatValue.ToString("N2", CultureInfo.InvariantCulture);
-                    manualTextComponent.onEndEdit.AddListener((string s) =>
-                    {
-                        // Filter and limit value.
-                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
-                        bool result = float.TryParse(s, out float parsedValue);
-                        if (!result) return;
-                        // If the result is valid, limit it and then set it.
-                        float limitedValue =
-                            Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                        manualTextComponent.text = limitedValue.ToString("N2", CultureInfo.InvariantCulture);
-                        objectSlider.value = limitedValue;
-                        currentDatablock.SetUnstoredValue(limitedValue);
-                        OnManualTextFocus(true);
-                    });
-
-                    manualTextComponent.onSelect.AddListener((string str) =>
-                    {
-                        OnManualTextFocus(false);
-                    });
-
-                    // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
-                    //     floatValue.ToString("N2", CultureInfo.InvariantCulture);
+                    instObj = CreateRangeControl(
+                        currentDatablock,
+                        initialValue: floatValue,
+                        wholeNumbers: false,
+                        format: "N2",
+                        thisContentRoot,
+                        setUnstoredFloat: f => currentDatablock.SetUnstoredValue((float)Math.Round(f, 2)));
                 }
                 else if (currentValue is double doubleValue)
                 {
-                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
-
-                    var wrapper = instObj.GetComponentInChildren<SliderWrapper>(true);
-                    wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
-                    var bindingText = wrapper._valueText;
-                    wrapper._valueText = null;
-
-                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
-                    var objectSlider = instObj.GetComponentInChildren<Slider>();
-                    objectSlider.minValue = currentDatablock.GetMin();
-                    objectSlider.maxValue = currentDatablock.GetMax();
-                    objectSlider.value = (float)doubleValue;
-                    objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
-                    {
-                        float correctedVal = (float)Math.Round(newVal, 2);
-                        currentDatablock.SetUnstoredValue(correctedVal);
-                        manualTextComponent.text = correctedVal.ToString("N2", CultureInfo.InvariantCulture);
-                    });
-
-                    // Manual input value
-                    manualTextComponent.text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
-                    manualTextComponent.onEndEdit.AddListener((string s) =>
-                    {
-                        // Filter and limit value.
-                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
-                        bool result = float.TryParse(s, out float parsedValue);
-                        if (!result) return;
-
-                        // If the result is valid, limit it and then set it.
-                        float limitedValue = Mathf.Clamp(parsedValue, currentDatablock.GetMin(),
-                            currentDatablock.GetMax());
-                        manualTextComponent.text = limitedValue.ToString("N2", CultureInfo.InvariantCulture);
-                        objectSlider.value = limitedValue;
-                        currentDatablock.SetUnstoredValue(limitedValue);
-                        OnManualTextFocus(true);
-                    });
-
-                    // To disable inputs from the game while selected.
-                    manualTextComponent.onSelect.AddListener((string str) =>
-                    {
-                        OnManualTextFocus(false);
-                    });
-
-                    // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text = doubleValue.ToString("N2", CultureInfo.InvariantCulture);
+                    instObj = CreateRangeControl(
+                        currentDatablock,
+                        initialValue: (float)doubleValue,
+                        wholeNumbers: false,
+                        format: "N2", 
+                        thisContentRoot,
+                        setUnstoredFloat: f => currentDatablock.SetUnstoredValue((double)f));
                 }
                 else if (currentValue is Color colore) // if (categoryVariables.Value is Color colorValue)
                 {
@@ -631,6 +530,14 @@ namespace ModConfigMenu
                     instObj.GetComponentInChildren<LocalizableLabel>()
                         .ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
                 }
+                else if(currentDatablock is StringConfig strConfig)
+                {
+                    skipLabel = true;
+                    instObj = GameObject.Instantiate(stringPrefab, thisContentRoot);
+                    var customLabel = strConfig.Value.ToString().Trim('"');
+                    instObj.GetComponentInChildren<LocalizableLabel>()
+                        .ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
+                }
                 else
                 {
                     Logger.LogError(
@@ -646,13 +553,62 @@ namespace ModConfigMenu
                 // Label for each object
                 var label = currentDatablock.GetLabel();
                 //instObj.GetComponentInChildren<TextMeshProUGUI>().text = !string.IsNullOrEmpty(label) ? label : currentDatablock.Key;
-                if (!skipLabel)
+                if (!skipLabel && !string.IsNullOrEmpty(label))
                     instObj.GetComponentInChildren<LocalizableLabel>()
                         .ChangeLabel(!string.IsNullOrEmpty(label) ? label : currentDatablock.Key);
                 instObj.SetActive(true);
             }
 
             return rootGameObject;
+        }
+
+
+        // Helper: creates range control (works for int/float/double)
+        private GameObject CreateRangeControl(IConfigValue config, float initialValue, bool wholeNumbers, string format, Transform root, Action<float> setUnstoredFloat)
+        {
+            var inst = InstantiatePrefab(rangeButtonPrefab, root);
+            if (inst == null) return null;
+
+            var wrapper = inst.GetComponentInChildren<SliderWrapper>(true);
+            if (wrapper != null)
+            {
+                // For numeric sliders we usually don't want the wrapper to bind the value text directly.
+                wrapper._visibleMode = SliderWrapper.VisibleMode.Default;
+                wrapper._valueText = null;
+            }
+
+            var manualText = inst.GetComponentInChildren<TMP_InputField>(true);
+            var slider = inst.GetComponentInChildren<Slider>();
+            slider.minValue = config.GetMin();
+            slider.maxValue = config.GetMax();
+            slider.wholeNumbers = wholeNumbers;
+            slider.value = Mathf.Clamp(initialValue, config.GetMin(), config.GetMax());
+
+            // Slider -> config + manual text
+            slider.onValueChanged.AddListener((newVal) =>
+            {
+                float rounded = wholeNumbers ? Mathf.Round(newVal) : (float)Math.Round(newVal, 2);
+                setUnstoredFloat(rounded);
+                manualText.text = wholeNumbers ? rounded.ToString("F0", CultureInfo.InvariantCulture) : rounded.ToString(format, CultureInfo.InvariantCulture);
+            });
+
+            // Manual input -> slider + config
+            manualText.text = wholeNumbers ? ((int)initialValue).ToString(CultureInfo.InvariantCulture) : initialValue.ToString(format, CultureInfo.InvariantCulture);
+            manualText.onEndEdit.AddListener((s) =>
+            {
+                if (string.IsNullOrEmpty(s)) s = config.GetMin().ToString(CultureInfo.InvariantCulture);
+                if (!float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed)) return;
+                float limited = Mathf.Clamp(parsed, config.GetMin(), config.GetMax());
+                if (wholeNumbers) limited = Mathf.Round(limited);
+                manualText.text = wholeNumbers ? ((int)limited).ToString(CultureInfo.InvariantCulture) : limited.ToString(format, CultureInfo.InvariantCulture);
+                slider.value = limited;
+                setUnstoredFloat(limited);
+                OnManualTextFocus(true);
+            });
+
+            manualText.onSelect.AddListener((_) => OnManualTextFocus(false));
+
+            return inst;
         }
 
         // Helper: header instantiation

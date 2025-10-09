@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace ModConfigMenu
 {
-    public struct MetaData
+    public class MetaData
     {
         public readonly string Key;
         public readonly object Value;

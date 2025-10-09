@@ -13,6 +13,11 @@ namespace ModConfigMenu.Contracts
         public string Header { get; set; }
         public Action OnValueChanged { get; set; }
 
+        public BaseConfig()
+        {
+            if (Properties == null) Properties = new List<MetaData>();
+        }
+
         #region Values
 
         public void Save()
@@ -108,7 +113,7 @@ namespace ModConfigMenu.Contracts
         public string GetTypeProp()
         {
             var validResult = GetPropertyValue("type");
-            if (validResult is string typeProp && !string.IsNullOrEmpty(typeProp))
+            if (validResult != null && validResult is string typeProp && !string.IsNullOrEmpty(typeProp))
             {
                 return typeProp;
             }
@@ -126,7 +131,7 @@ namespace ModConfigMenu.Contracts
         public string GetLabel()
         {
             var validResult = GetPropertyValue("label");
-            if (validResult is string labelProp && !string.IsNullOrEmpty(labelProp))
+            if (validResult != null && validResult is string labelProp && !string.IsNullOrEmpty(labelProp))
             {
                 return labelProp;
             }
@@ -140,7 +145,7 @@ namespace ModConfigMenu.Contracts
         public string GetTooltip()
         {
             var validResult = GetPropertyValue("tooltip");
-            if (validResult is string tooltip && !string.IsNullOrEmpty(tooltip))
+            if (validResult != null && validResult is string tooltip && !string.IsNullOrEmpty(tooltip))
             {
                 return tooltip;
             }
@@ -165,16 +170,9 @@ namespace ModConfigMenu.Contracts
             Properties.Add(newProp);
         }
 
-        private MetaData? GetProperty(string name)
+        private MetaData GetProperty(string name)
         {
-            if (Properties.Exists(x => x.Key == name))
-            {
-                return Properties.Find(x => x.Key == name);
-            }
-            else
-            {
-                return null;
-            }
+            return Properties.Find(x => x.Key == name);
         }
 
         private object GetPropertyValue(string name)
