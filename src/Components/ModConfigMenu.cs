@@ -424,7 +424,7 @@ namespace ModConfigMenu
                     var toggle = instObj.GetComponentInChildren<Toggle>();
                     toggle.isOn = boolValue;
                     toggle.onValueChanged.AddListener(
-                        delegate(bool a) { currentDatablock.SetUnstoredValue(a); });
+                        delegate (bool a) { currentDatablock.SetUnstoredValue(a); });
                 }
                 else if (currentDatablock is DropdownConfig dropdownConfig)
                 {
@@ -443,11 +443,11 @@ namespace ModConfigMenu
                     var defaultOption = dropdownConfig.GetDefault();
                     var defaultValueIndex = dropdownOptions.FindIndex(x => x.Equals(defaultOption));
 
-                    if(defaultValueIndex < 0)
+                    if (defaultValueIndex < 0)
                     {
                         Logger.LogWarning($"Default option for dropdown: {dropdownConfig.GetLabel()}, Value: \"{defaultOption}\" could not be found in list. Defaulting to first value.");
                         defaultValueIndex = 0;
-                    }    
+                    }
 
                     dropdown.SetValueWithoutNotify(defaultValueIndex);
                     dropdown.onValueChanged.AddListener(delegate (int newIndex)
@@ -458,60 +458,41 @@ namespace ModConfigMenu
                 }
                 else if (currentValue is int intValue)
                 {
-                    //if (currentDatablock.GetTypeProp().ToLower().Equals("dropdown"))
-                    //{
-                    //    // Create a dropdown but behave as an int.
-                    //    // Get options, and their string counterparts.
-                    //    goToInstantiate = dropdownPrefab;
-                    //    instObj = GameObject.Instantiate(goToInstantiate, thisContentRoot);
-                    //    var dropdown = instObj.GetComponentInChildren<TMP_Dropdown>(true);
-                    //    dropdown.AddOptions(currentDatablock.GetDropdownOptions());
-                    //    dropdown.SetValueWithoutNotify(intValue);
-                    //    dropdown.onValueChanged.AddListener(delegate(int newIndex)
-                    //    {
-                    //        currentDatablock.SetUnstoredValue(Convert.ToInt32(newIndex));
-                    //    });
-                    //}
-                    //else
-                    //{
-                        instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
+                    instObj = GameObject.Instantiate(rangeButtonPrefab, thisContentRoot);
 
-                        var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
-                        var objectSlider = instObj.GetComponentInChildren<Slider>(true);
-                        objectSlider.minValue = currentDatablock.GetMin();
-                        objectSlider.maxValue = currentDatablock.GetMax();
-                        objectSlider.value = (float)intValue;
-                        objectSlider.onValueChanged.AddListener(delegate(float newVal)
-                        {
-                            currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
-                            manualTextComponent.text = newVal.ToString(CultureInfo.InvariantCulture);
-                        });
+                    var manualTextComponent = instObj.GetComponentInChildren<TMP_InputField>(true);
+                    var objectSlider = instObj.GetComponentInChildren<Slider>(true);
+                    objectSlider.minValue = currentDatablock.GetMin();
+                    objectSlider.maxValue = currentDatablock.GetMax();
+                    objectSlider.value = (float)intValue;
+                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
+                    {
+                        currentDatablock.SetUnstoredValue(Convert.ToInt32(newVal));
+                        manualTextComponent.text = newVal.ToString(CultureInfo.InvariantCulture);
+                    });
 
-                        // Manual input value
-                        manualTextComponent.text = intValue.ToString();
-                        manualTextComponent.onEndEdit.AddListener((string s) =>
-                        {
-                            // Filter and limit value.
-                            if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
-                            
-                            bool result = float.TryParse(s, out float parsedValue);
-                            if (!result) return;
-                            // If the result is valid, limit it and then set it.
-                            int limitedValue =
-                                (int)Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
-                            manualTextComponent.text = limitedValue.ToString();
-                            objectSlider.value = limitedValue;
-                            currentDatablock.SetUnstoredValue(limitedValue);
-                            OnManualTextFocus(true);
-                        });
-                        
-                        manualTextComponent.onSelect.AddListener((string str) =>
-                        {
-                            OnManualTextFocus(false);
-                        });
-                        // objectSlider.GetComponentInChildren<TextMeshProUGUI>().text =
-                        //     intValue.ToString(CultureInfo.CurrentCulture);
-                    //}
+                    // Manual input value
+                    manualTextComponent.text = intValue.ToString();
+                    manualTextComponent.onEndEdit.AddListener((string s) =>
+                    {
+                        // Filter and limit value.
+                        if (string.IsNullOrEmpty(s)) s = currentDatablock.GetMin().ToString(CultureInfo.InvariantCulture);
+
+                        bool result = float.TryParse(s, out float parsedValue);
+                        if (!result) return;
+                        // If the result is valid, limit it and then set it.
+                        int limitedValue =
+                            (int)Mathf.Clamp(parsedValue, currentDatablock.GetMin(), currentDatablock.GetMax());
+                        manualTextComponent.text = limitedValue.ToString();
+                        objectSlider.value = limitedValue;
+                        currentDatablock.SetUnstoredValue(limitedValue);
+                        OnManualTextFocus(true);
+                    });
+
+                    manualTextComponent.onSelect.AddListener((string str) =>
+                    {
+                        OnManualTextFocus(false);
+                    });
                 }
                 else if (currentValue is float floatValue)
                 {
@@ -528,7 +509,7 @@ namespace ModConfigMenu
                     objectSlider.maxValue = currentDatablock.GetMax();
                     objectSlider.value = floatValue;
                     objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate(float newVal)
+                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
@@ -551,7 +532,7 @@ namespace ModConfigMenu
                         currentDatablock.SetUnstoredValue(limitedValue);
                         OnManualTextFocus(true);
                     });
-                    
+
                     manualTextComponent.onSelect.AddListener((string str) =>
                     {
                         OnManualTextFocus(false);
@@ -575,7 +556,7 @@ namespace ModConfigMenu
                     objectSlider.maxValue = currentDatablock.GetMax();
                     objectSlider.value = (float)doubleValue;
                     objectSlider.wholeNumbers = false;
-                    objectSlider.onValueChanged.AddListener(delegate(float newVal)
+                    objectSlider.onValueChanged.AddListener(delegate (float newVal)
                     {
                         float correctedVal = (float)Math.Round(newVal, 2);
                         currentDatablock.SetUnstoredValue(correctedVal);
@@ -599,7 +580,7 @@ namespace ModConfigMenu
                         currentDatablock.SetUnstoredValue(limitedValue);
                         OnManualTextFocus(true);
                     });
-                    
+
                     // To disable inputs from the game while selected.
                     manualTextComponent.onSelect.AddListener((string str) =>
                     {
@@ -617,7 +598,7 @@ namespace ModConfigMenu
                     {
                         UI.Chain<ColorPickerController>().Show();
                         var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
-                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
+                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate (Color selectedColor)
                         {
                             currentDatablock.SetUnstoredValue(selectedColor);
                             objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
@@ -634,7 +615,7 @@ namespace ModConfigMenu
                     {
                         UI.Chain<ColorPickerController>().Show();
                         var currentColor = objectButton.transform.Find("ColorPreview").GetComponent<Image>().color;
-                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate(Color selectedColor)
+                        UI.Get<ColorPickerController>().ConfigureButtons(currentColor, delegate (Color selectedColor)
                         {
                             currentDatablock.SetUnstoredValue($"\"#{ColorUtility.ToHtmlStringRGB(selectedColor)}\"");
                             objectButton.transform.Find("ColorPreview").GetComponent<Image>().color = selectedColor;
