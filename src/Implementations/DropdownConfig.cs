@@ -1,12 +1,7 @@
-﻿using JetBrains.Annotations;
-using System;
+﻿using ModConfigMenu.Contracts;
 using System.Collections.Generic;
-using MGSC;
-using ModConfigMenu.Services;
-using ModConfigMenu.Contracts;
-using System.Xml.Linq;
 
-namespace ModConfigMenu.Objects
+namespace ModConfigMenu.Implementations
 {
     /// <summary>
     /// Conserves a config value
