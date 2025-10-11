@@ -439,18 +439,29 @@ namespace ModConfigMenu
                         Logger.LogError($"No valid dropdown options available one of the dropdowns in: {modData.ModName}");
                         continue;
                     }
+
                     dropdown.AddOptions(dropdownOptions.Select(x => x.ToString()).ToList());
 
-                    var defaultOption = dropdownConfig.GetDefault();
-                    var defaultValueIndex = dropdownOptions.FindIndex(x => x.Equals(defaultOption));
+                    var startingOptionIndex = dropdownOptions.FindIndex(x => x.Equals(dropdownConfig.Value));
 
-                    if (defaultValueIndex < 0)
+                    if (startingOptionIndex >= 0)
                     {
-                        Logger.LogWarning($"Default option for dropdown: {dropdownConfig.GetLabel()}, Value: \"{defaultOption}\" could not be found in list. Defaulting to first value.");
-                        defaultValueIndex = 0;
+                        dropdown.SetValueWithoutNotify(startingOptionIndex);
+                    }
+                    else
+                    {
+                        Logger.LogWarning($"Starting option for dropdown: {dropdownConfig.GetLabel()}, Value: \"{dropdownConfig.Value}\" could not be found in list. Trying the default value.");
+
+                        var defaultValueIndex = dropdownOptions.FindIndex(x => x.Equals(dropdownConfig.GetDefault()));
+
+                        if (defaultValueIndex < 0)
+                        {
+                            Logger.LogWarning($"Default option for dropdown: {dropdownConfig.GetLabel()}, Value: \"{dropdownConfig.GetDefault()}\" could not be found in list. Defaulting to first indexable value.");
+                            defaultValueIndex = 0;
+                        }
+                        dropdown.SetValueWithoutNotify(defaultValueIndex);
                     }
 
-                    dropdown.SetValueWithoutNotify(defaultValueIndex);
                     dropdown.onValueChanged.AddListener(delegate (int newIndex)
                     {
                         var dropdownOption = dropdownOptions[newIndex];
@@ -464,7 +475,7 @@ namespace ModConfigMenu
                         currentDatablock,
                         initialValue: intValue,
                         wholeNumbers: true,
-                        format: "F0", 
+                        format: "F0",
                         thisContentRoot,
                         setUnstoredFloat: f => currentDatablock.SetUnstoredValue((int)Mathf.Round(f)));
                 }
@@ -484,7 +495,7 @@ namespace ModConfigMenu
                         currentDatablock,
                         initialValue: (float)doubleValue,
                         wholeNumbers: false,
-                        format: "N2", 
+                        format: "N2",
                         thisContentRoot,
                         setUnstoredFloat: f => currentDatablock.SetUnstoredValue((double)f));
                 }
@@ -530,7 +541,7 @@ namespace ModConfigMenu
                     instObj.GetComponentInChildren<LocalizableLabel>()
                         .ChangeLabel(!string.IsNullOrEmpty(customLabel) ? customLabel : currentDatablock.Key);
                 }
-                else if(currentDatablock is StringConfig strConfig)
+                else if (currentDatablock is StringConfig strConfig)
                 {
                     skipLabel = true;
                     instObj = GameObject.Instantiate(stringPrefab, thisContentRoot);
