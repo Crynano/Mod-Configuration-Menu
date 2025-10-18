@@ -2,18 +2,15 @@
 using ModConfigMenu.Components;
 using ModConfigMenu.Contracts;
 using ModConfigMenu.Implementations;
-using ModConfigMenu.Objects;
 using ModConfigMenu.Services;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
-using static MGSC.InputController;
 using Debug = UnityEngine.Debug;
 
 namespace ModConfigMenu
@@ -21,6 +18,13 @@ namespace ModConfigMenu
     [UIView(GameLoopGroup.MainMenu, false, true)]
     public class ModConfigMenu : MonoBehaviour
     {
+        private const string DEFAULT_BUTTON_COLOR = "#FFFEC1";
+        private const string QUASI_COLOR_STANDARD = "#1C3D2E";
+
+        private readonly Color SELECTED_MOD_COLOR = new Color(0.288f, 0.6f, 0.31f, 1f);
+        private readonly Color RANGE_BAR_COLOR = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
+        private Color QuasiStandardColor;
+
         public CustomTooltip _customTooltip;
 
         private GameObject ModButtonPrefab;
@@ -38,11 +42,8 @@ namespace ModConfigMenu
 
         private GameObject stringPrefab;
 
-        //private GameObject keybindPrefab;
         private GameObject headerPrefab;
         private GameObject rootPrefab;
-
-        private GameObject colorPickerPrefab;
 
         private CommonButton _backButton;
         private Button _saveButton;
@@ -50,26 +51,27 @@ namespace ModConfigMenu
 
         private ModConfig lastActiveMod = null;
         private Transform lastActiveModRoot = null;
+
         private Dictionary<string, Transform> ModsRoot = new Dictionary<string, Transform>();
 
         public void Awake()
         {
-            Logger.LogDebug("Awake(): Starting ModConfigMenu");
             // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
+
             // Let's find a generic button to modify.
-            ModButtonPrefab = gameSettingsScreen.transform.Find("Window").Find("Buttons").Find("BtnGeneral").gameObject;
-            // Let's get the mod button prefab working
+            //ModButtonPrefab = gameSettingsScreen.transform.Find("Window").Find("Buttons").Find("BtnGeneral").gameObject;
+
             ModListRoot = transform.Find("ModList").Find("ModsScroll").Find("Viewport").Find("Content");
 
             ConfigAreaRoot = transform.Find("ConfigArea");
             PrefabsRoot = ConfigAreaRoot.Find("Prefabs");
             ContentRoot = ConfigAreaRoot.Find("ContentRoot");
 
+            ConfigureModButtonPrefab();
             ConfigureBoolButtonPrefab();
             ConfigureRangeButtonPrefab();
             ConfigureColorButtonPrefab();
-            //ConfigureKeybindButtonPrefab();
             ConfigureClickableButtonPrefab();
             ConfigureDropdownPrefab();
             ConfigureStringPrefab();
@@ -87,20 +89,15 @@ namespace ModConfigMenu
                 _backButton.OnClick += delegate { UI.Back(); };
 
             _saveButton = ConfigAreaRoot.Find("SaveButton")?.GetComponent<Button>();
-            if (_saveButton != null)
-            {
-                _saveButton.onClick.AddListener(SaveCurrentMod);
-            }
+            _saveButton?.onClick.AddListener(SaveCurrentMod);
 
             _resetDefaultButton = ConfigAreaRoot.Find("DefaultButton")?.GetComponent<Button>();
-            if (_resetDefaultButton != null)
-            {
-                _resetDefaultButton.onClick.AddListener(ResetCurrentMod);
-            }
+            _resetDefaultButton?.onClick.AddListener(ResetCurrentMod);
 
             // Load custom tooltip from Assetbundle and instantiate.
             var tooltipToInstantiate =
                 Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "CustomTooltipMessage");
+
             if (tooltipToInstantiate != null)
             {
                 var instObject = Instantiate(tooltipToInstantiate,
@@ -110,51 +107,69 @@ namespace ModConfigMenu
                 _customTooltip.gameObject.SetActive(false);
             }
 
-            Logger.LogDebug("Awake(): Finished");
+            ColorUtility.TryParseHtmlString(QUASI_COLOR_STANDARD, out QuasiStandardColor);
         }
 
         public void Start()
         {
-            Logger.LogDebug("Start(): Starting ModConfigMenu");
-            try
-            {
-                CreateButtonsForEveryMod();
-                Logger.LogDebug("Start(): Successfully started ModConfigMenu");
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e.Message);
-            }
-            finally
-            {
-                Logger.LogDebug("Start(): Finished ModConfigMenu Start");
-                Logger.Flush();
-            }
+            Stopwatch crono = new Stopwatch();
+            crono.Start();
+            CreateButtonsForEveryMod();
+            crono.Stop();
+            Debug.Log($"MCM Load Time: {crono.ElapsedMilliseconds}ms");
         }
 
         private void CreateButtonsForEveryMod()
         {
-            foreach (var modName in ModConfigManager.ModsList.OrderBy(x => x).ToList())
+            var orderedModList = ModConfigManager.ModsList.OrderBy(x => x).ToList();
+            foreach (var modName in orderedModList)
             {
-                var buttonObject = GameObject.Instantiate(ModButtonPrefab, ModListRoot);
-                buttonObject.name = $"[{modName.Replace(" ", string.Empty)}]";
-
-                var objectButton = buttonObject.GetComponent<CommonButton>();
-                objectButton.ChangeLabel(modName);
-                objectButton.OnClick += delegate
+                GameObject modButton = null;
+                try
                 {
-                    ModConfig modConfig = ModConfigManager.GetModConfig(modName);
-                    ModsRoot.TryGetValue(modName, out Transform root);
-                    if (root != null)
+                    modButton = GameObject.Instantiate(ModButtonPrefab, ModListRoot);
+                    modButton.name = $"[{modName.Replace(" ", string.Empty)}]";
+
+                    var objectButton = modButton.GetComponent<Toggle>();
+                    //objectButton.ChangeLabel(modName);
+                    objectButton.GetComponentInChildren<TextMeshProUGUI>().text = modName.ColorFirstLetter(Colors.White);
+                    objectButton.onValueChanged.AddListener((bool selected) =>
                     {
-                        SwitchMod(modConfig, root);
-                    }
-                    else
-                    {
-                        CreateNewMod(modConfig);
-                    }
-                };
+                        objectButton.transform.Find("Selected").gameObject.SetActive(selected);
+                        SwitchToMod(modName);
+                    });
+                    modButton.SetActive(true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Could not create UI for mod: {modName}" +
+                        $"\n{ex.Message}" +
+                        $"\n{ex.StackTrace}");
+
+                    continue;
+                }
             }
+        }
+
+        private void SwitchToMod(string modName)
+        {
+            ModConfig modConfig = ModConfigManager.GetModConfig(modName);
+            ModsRoot.TryGetValue(modName, out Transform root);
+            if (root != null)
+            {
+                CheckForChangesAndSwitchMod(modConfig, root);
+            }
+            else
+            {
+                CreateNewMod(modConfig);
+            }
+        }
+
+        private void ConfigureModButtonPrefab()
+        {
+            // Instead of finding a generic button, we create our own.
+            ModButtonPrefab = PrefabsRoot.Find("Mod").gameObject;
+            ModButtonPrefab.SetActive(false);
         }
 
         private void ConfigureBoolButtonPrefab()
@@ -186,7 +201,8 @@ namespace ModConfigMenu
             mgscSliderComponent._slider = sliderComponent;
             mgscSliderComponent._sliderFillBar = sliderObject.transform.Find("Fill Area").Find("Fill").GetComponent<Image>();
             mgscSliderComponent._valueText = sliderObject.transform.parent.Find("SliderValue").Find("Value").GetComponent<TextMeshProUGUI>();
-            mgscSliderComponent._barColor = new Color(0.5059f, 0.7098f, 0.4784f, 1f);
+
+            mgscSliderComponent._barColor = RANGE_BAR_COLOR;
             mgscSliderComponent.Awake();
 
             // Adding a wrapper to unselect automatically when the user cancels.
@@ -222,6 +238,7 @@ namespace ModConfigMenu
         {
             if (hoverable)
                 go.AddComponent<GenericHoverTooltip>();
+
             ConfigureLocalizableLabel(go.AddComponent<LocalizableLabel>());
         }
 
@@ -234,79 +251,57 @@ namespace ModConfigMenu
             label._labelContext = TextContext.None;
         }
 
-        //private void ConfigureKeybindButtonPrefab()
-        //{
-        //    keyBindPrefab = FindObjectOfType<KeybindingPage>(true)?.GetComponentInChildren<GameKeySetupPanel>(true)?.gameObject;
-        //    // Label is keyBindPrefab.transform.Find("Label")
-        //    if (keyBindPrefab == null)
-        //    {
-        //        Debug.LogError($"Could not find the keybind prefab for MCM");
-        //        return;
-        //    }
-        //}
-
-        private void SwitchMod(ModConfig newMod, Transform newModRoot)
+        private void CheckForChangesAndSwitchMod(ModConfig newMod, Transform newModRoot)
         {
-            // if currentMod is dirty, pop the menu asking to save.
-            // if yes, save and execute following
-            // If no, skip
             if (lastActiveModRoot != null && newModRoot.gameObject == lastActiveModRoot.gameObject) return;
             if (lastActiveMod != null && lastActiveMod.IsDirty)
             {
                 // Popup
-                ColorUtility.TryParseHtmlString("#FFFEC1", out Color letterColor);
+                ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
                 UI.Chain<ChangeModConfirmationPanel>().Show();
                 SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
+                // TODO Add Localization here.
                 UI.Get<ChangeModConfirmationPanel>().Configure(
                     "Unsaved Changes".ColorFirstLetter(letterColor),
                     "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
-                    SaveAndChangeMod,
-                    DiscardChanges,
+                    () => { SaveCurrentMod(); ChangeMod(newMod, newModRoot); },
+                    () => { DiscardChanges(); ChangeMod(newMod, newModRoot); },
                     null
                 );
             }
             else
             {
-                ChangeMod();
+                ChangeMod(newMod, newModRoot);
             }
+        }
 
-            return;
-
-            void SaveAndChangeMod()
+        private void ChangeMod(ModConfig newMod, Transform newModRoot)
+        {
+            if (lastActiveMod != null)
             {
-                SaveCurrentMod();
-                ChangeMod();
+                lastActiveMod.OnConfigChanged -= EnableSaveButton;
             }
 
-            void DiscardChanges()
-            {
-                DiscardCurrentModChanges();
-                lastActiveModRoot?.gameObject.SetActive(false);
-                ModsRoot.Remove(lastActiveMod.ModName);
-                Destroy(lastActiveModRoot?.gameObject);
-                ChangeMod();
-            }
+            lastActiveMod = newMod;
+            lastActiveMod.OnConfigChanged += EnableSaveButton;
+            lastActiveModRoot?.gameObject.SetActive(false);
+            lastActiveModRoot = newModRoot;
+            lastActiveModRoot.gameObject.SetActive(true);
+        }
 
-            void ChangeMod()
-            {
-                if (lastActiveMod != null)
-                {
-                    lastActiveMod.OnConfigChanged -= EnableSaveButton;
-                }
-
-                lastActiveMod = newMod;
-                lastActiveMod.OnConfigChanged += EnableSaveButton;
-                lastActiveModRoot?.gameObject.SetActive(false);
-                lastActiveModRoot = newModRoot;
-                lastActiveModRoot.gameObject.SetActive(true);
-            }
+        private void DiscardChanges()
+        {
+            DiscardCurrentModChanges();
+            lastActiveModRoot?.gameObject.SetActive(false);
+            ModsRoot.Remove(lastActiveMod.ModName);
+            Destroy(lastActiveModRoot?.gameObject);
         }
 
         private void CreateNewMod(ModConfig modConfig)
         {
             var newRoot = BuildModConfig(modConfig);
             ModsRoot.Add(modConfig.ModName, newRoot);
-            SwitchMod(modConfig, newRoot);
+            CheckForChangesAndSwitchMod(modConfig, newRoot);
         }
 
         private void ReloadModRoot(bool resetDefaultValues = false)
@@ -676,5 +671,41 @@ namespace ModConfigMenu
                 });
             });
         }
+
+        #region Helper Functions
+
+
+        internal void SwitchModButtonLight(CommonButton lastSelectedModButton, CommonButton newSelectedButton)
+        {
+            if (lastSelectedModButton != null)
+                lastSelectedModButton.background.color = Color.white;
+
+            newSelectedButton.background.color = SELECTED_MOD_COLOR;
+        }
+
+        #endregion
+
+
+        #region Unity Functions
+
+        public void OnDisable()
+        {
+            if (lastActiveMod != null && lastActiveMod.IsDirty)
+            {
+                // Popup
+                ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
+                UI.Chain<ChangeModConfirmationPanel>().Show();
+                SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
+                UI.Get<ChangeModConfirmationPanel>().Configure(
+                    "Unsaved Changes".ColorFirstLetter(letterColor),
+                    "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
+                       () => { SaveCurrentMod(); },
+                    () => { DiscardChanges(); },
+                    null
+                );
+            }
+        }
+
+        #endregion
     }
 }
