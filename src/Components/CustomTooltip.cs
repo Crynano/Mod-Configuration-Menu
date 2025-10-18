@@ -1,9 +1,5 @@
 ﻿using MGSC;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -13,6 +9,8 @@ namespace ModConfigMenu.Components
     {
         //private TextMeshProUGUI textBox;
         private LocalizableLabel label;
+
+        private Coroutine AdjustPositionCoroutine;
 
         void Awake()
         {
@@ -36,8 +34,15 @@ namespace ModConfigMenu.Components
             //this.textBox.text = text;
             RegisterComponents();
             label.ChangeLabel(text);
-            this.transform.position = position;
             this.gameObject.SetActive(true);
+            this.transform.position = LimitLabelPositionToScreen(position, ((RectTransform)transform).rect);
+        }
+
+        private Vector3 LimitLabelPositionToScreen(Vector2 position, Rect rect)
+        {
+            var goodHeight = rect.height * 4f;
+            position.y = Mathf.Clamp(position.y, goodHeight, Screen.height);
+            return position;
         }
 
         public void Hide()
