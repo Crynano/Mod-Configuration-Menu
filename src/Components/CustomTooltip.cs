@@ -11,6 +11,7 @@ namespace ModConfigMenu.Components
         private LocalizableLabel label;
 
         private Coroutine AdjustPositionCoroutine;
+        private Vector2 _cachedPosition;
 
         void Awake()
         {
@@ -34,8 +35,14 @@ namespace ModConfigMenu.Components
             //this.textBox.text = text;
             RegisterComponents();
             label.ChangeLabel(text);
-            this.gameObject.SetActive(true);
-            this.transform.position = LimitLabelPositionToScreen(position, ((RectTransform)transform).rect);
+            _cachedPosition = position;
+            transform.position = position;
+            gameObject.SetActive(true);
+        }
+
+        void LateUpdate()
+        {
+            transform.position = LimitLabelPositionToScreen(_cachedPosition, ((RectTransform)transform).rect);
         }
 
         private Vector3 LimitLabelPositionToScreen(Vector2 position, Rect rect)

@@ -220,10 +220,19 @@ namespace ModConfigMenu
 
         private void ConfigureDropdownPrefab()
         {
-            dropdownPrefab = PrefabsRoot.Find("Dropdown").gameObject;
-            var labelGO = dropdownPrefab?.transform.Find("Label").gameObject;
-            ConfigureLabel(labelGO);
-            dropdownPrefab?.SetActive(false);
+            try
+            {
+                dropdownPrefab = PrefabsRoot.Find("Dropdown").gameObject;
+                var labelGO = dropdownPrefab?.transform.Find("Label").gameObject;
+                ConfigureLabel(labelGO);
+                var dropdownGO = dropdownPrefab?.transform.Find("Dropdown").Find("Label").gameObject;
+                dropdownGO?.AddComponent<FontLanguageSyncronizer>();
+                dropdownPrefab?.SetActive(false);
+            }
+            catch (NullReferenceException)
+            {
+                Debug.LogError("Exception ocurred when configuring dropdown prefab");
+            }
         }
 
         private void ConfigureStringPrefab()
@@ -688,23 +697,23 @@ namespace ModConfigMenu
 
         #region Unity Functions
 
-        public void OnDisable()
-        {
-            if (lastActiveMod != null && lastActiveMod.IsDirty)
-            {
-                // Popup
-                ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
-                UI.Chain<ChangeModConfirmationPanel>().Show();
-                SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
-                UI.Get<ChangeModConfirmationPanel>().Configure(
-                    "Unsaved Changes".ColorFirstLetter(letterColor),
-                    "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
-                       () => { SaveCurrentMod(); },
-                    () => { DiscardChanges(); },
-                    null
-                );
-            }
-        }
+        //public void OnDisable()
+        //{
+        //    if (lastActiveMod != null && lastActiveMod.IsDirty)
+        //    {
+        //        // Popup
+        //        ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
+        //        UI.Chain<ChangeModConfirmationPanel>().Show();
+        //        SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
+        //        UI.Get<ChangeModConfirmationPanel>().Configure(
+        //            "Unsaved Changes".ColorFirstLetter(letterColor),
+        //            "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
+        //               () => { SaveCurrentMod(); },
+        //            () => { DiscardChanges(); },
+        //            null
+        //        );
+        //    }
+        //}
 
         #endregion
     }
