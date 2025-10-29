@@ -220,19 +220,15 @@ namespace ModConfigMenu
 
         private void ConfigureDropdownPrefab()
         {
-            try
-            {
-                dropdownPrefab = PrefabsRoot.Find("Dropdown").gameObject;
-                var labelGO = dropdownPrefab?.transform.Find("Label").gameObject;
-                ConfigureLabel(labelGO);
-                var dropdownGO = dropdownPrefab?.transform.Find("Dropdown").Find("Label").gameObject;
-                dropdownGO?.AddComponent<FontLanguageSyncronizer>();
-                dropdownPrefab?.SetActive(false);
-            }
-            catch (NullReferenceException)
-            {
-                Debug.LogError("Exception ocurred when configuring dropdown prefab");
-            }
+
+            dropdownPrefab = PrefabsRoot.Find("Dropdown").gameObject;
+            var labelGO = dropdownPrefab?.transform.Find("Label").gameObject;
+            ConfigureLabel(labelGO);
+            dropdownPrefab.GetComponent<TMP_Dropdown>()?.itemText.gameObject.AddComponent<FontLanguageSyncronizer>();
+            var dropdownGO = dropdownPrefab?.transform.Find("Dropdown").Find("Label").gameObject;
+            dropdownGO?.AddComponent<FontLanguageSyncronizer>();
+            dropdownPrefab?.SetActive(false);
+
         }
 
         private void ConfigureStringPrefab()
