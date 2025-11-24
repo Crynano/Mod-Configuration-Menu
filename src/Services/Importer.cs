@@ -1,8 +1,10 @@
 ﻿using MGSC;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace ModConfigMenu.Services
@@ -13,7 +15,6 @@ namespace ModConfigMenu.Services
         {
             if (string.IsNullOrEmpty(fileName))
             {
-                //Logger.LogWarning($"Bundle fileName was empty or null");
                 return null;
             }
 
@@ -21,27 +22,42 @@ namespace ModConfigMenu.Services
 
             if (!File.Exists(completePath))
             {
-                //Logger.LogWarning($"Could not find bundle with {bundlePath} at {completePath}");
                 return null;
             }
-
-            // If file doesnt have the correct extension?
-            // if (!Path.HasExtension(completePath)) { Logger.LogError($"Incorrect path at {bundlePath}"); return null; }
-            //Logger.LogInfo($"Loading from {bundlePath}");
-            // We assume its right
+            
             var loadedBundle = AssetBundle.LoadFromFile(completePath);
             var loadedAsset = loadedBundle.LoadAsset(fileName, typeof(T)) as T;
             loadedBundle.Unload(false);
-            if (loadedAsset != null)
+            return loadedAsset ?? null;
+        }
+        
+        [CanBeNull]
+        public static List<T> LoadFilesFromBundle<T>(string bundlePath, List<string> fileNames) where T : class
+        {
+            var loadedAssets = new List<T>();
+            if (string.IsNullOrEmpty(bundlePath) || fileNames == null || fileNames.Count == 0)
             {
-                //Logger.LogInfo($"Loaded asset correctly! Returning {loadedAsset.GetType()}");
-                return loadedAsset;
-            }
-            else
-            {
-                //Logger.LogWarning($"Asset {fileName} is missing from bundle: {bundlePath}");
                 return null;
             }
+
+            var completePath = Path.Combine(Plugin.ModAssemblyLocation, bundlePath);
+
+            if (!File.Exists(completePath))
+            {
+                return null;
+            }
+            
+            var loadedBundle = AssetBundle.LoadFromFile(completePath);
+            foreach (var fileName in fileNames)
+            {
+                var loadedAsset = loadedBundle.LoadAsset(fileName, typeof(T)) as T;
+                if (loadedAsset != null)
+                {
+                    loadedAssets.Add(loadedAsset);
+                }
+            }
+            loadedBundle.Unload(false);
+            return loadedAssets;
         }
 
         // Thanks to "NBK_RedSpy" and "amazonochka utyty" from QM Discord!
@@ -56,7 +72,7 @@ namespace ModConfigMenu.Services
 
             if (stream == null)
             {
-                Logger.LogError("ASSETBUNDLE COULD NOT BE LOADED");
+                // Logger.LogError("ASSETBUNDLE COULD NOT BE LOADED");
                 return null;
             }
 
@@ -66,12 +82,7 @@ namespace ModConfigMenu.Services
 
             stream.Position = 0;
 
-            if (loadedAsset != null)
-            {
-                //Logger.LogInfo($"Loaded asset correctly! Returning {loadedAsset.GetType()}");
-                return loadedAsset;
-            }
-            return null;
+            return loadedAsset ?? null;
         }
     }
 }

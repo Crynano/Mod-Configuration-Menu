@@ -4,6 +4,7 @@
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	  <VersionPrefix>1.0.0</VersionPrefix>
+	  <WarningsAsErrors>true</WarningsAsErrors>
   </PropertyGroup>
 	<PropertyGroup>
 		<GAME_NAME>Quasimorph</GAME_NAME>
@@ -18,13 +19,14 @@
 	  <Compile Remove="Move To Root\**" />
 	  <EmbeddedResource Remove="Move To Root\**" />
 	  <None Remove="Move To Root\**" />
+	  <None Remove="mcmassets" />
+	  <Content Include="mcmassets">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 	<ItemGroup>
 	  <None Remove="Resources\mcmassets.manifest" />
 	  <None Remove="Resources\Mod Configuration Menu.manifest" />
-	</ItemGroup>
-	<ItemGroup>
-	  <EmbeddedResource Include="Resources\mcmassets" />
 	</ItemGroup>
 	<ItemGroup>
 		<Reference Include="Assembly-CSharp" publicize="true">
@@ -83,11 +85,11 @@
 
 	</PropertyGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="@echo off&#xD;&#xA;set deployDir=&quot;$(WorkshopPath)&quot;&#xD;&#xA;&#xD;&#xA;xcopy /f /y &quot;../modmanifest.json&quot; &quot;$(TargetDir)&quot;&#xD;&#xA;&#xD;&#xA;if '$(SteamId)'=='' (echo SteamId in project not set.  Aborting Workshop Deployment &amp;&amp; exit)&#xD;&#xA;echo deploying to %25deployDir%25&#xD;&#xA;&#xD;&#xA;mkdir &quot;$(WorkshopPath)&quot;&#xD;&#xA;&#xD;&#xA;xcopy /f /y &quot;$(ProjectDir)../media/thumbnail.png&quot; %25deployDir%25&#xD;&#xA;xcopy /f /y &quot;$(ProjectDir)../modmanifest.json&quot; %25deployDir%25&#xD;&#xA;xcopy /f /y   &quot;$(TargetDir)$(TargetName).*&quot; %25deployDir%25&#xD;&#xA;" />
 		<ItemGroup>
 			<WorkshopSourceFile Include="$(WorkshopPath)*.*" />
 			<PackageRemoveFiles Include="$(PackageFolder)$(TargetName)/*.pdb" />
 		</ItemGroup>
+		<Exec Command="@echo off&#xA;set deployDir=&quot;$(WorkshopPath)&quot;&#xA;&#xA;xcopy /f /y &quot;../modmanifest.json&quot; &quot;$(TargetDir)&quot;&#xA;&#xA;if '$(SteamId)'=='' (echo SteamId in project not set.  Aborting Workshop Deployment &amp;&amp; exit)&#xA;echo deploying to %25deployDir%25&#xA;&#xA;mkdir &quot;$(WorkshopPath)&quot;&#xA;&#xA;xcopy /f /y &quot;$(ProjectDir)../media/thumbnail.png&quot; %25deployDir%25&#xA;xcopy /f /y &quot;$(ProjectDir)../modmanifest.json&quot; %25deployDir%25&#xA;xcopy /f /y &quot;$(TargetDir)$(TargetName).*&quot; %25deployDir%25&#xA;xcopy /f /y &quot;$(TargetDir)mcmassets.*&quot; %25deployDir%25&#xA;" />
 	</Target>
 	<Target Condition="'$(SteamId)'!=''" Name="PostBuildPackage" AfterTargets="PostBuildEvent">
 		<ItemGroup>

@@ -13,6 +13,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
 
+#pragma warning disable IDE0130
 namespace ModConfigMenu
 {
     [UIView(GameLoopGroup.MainMenu, false, true)]
@@ -52,15 +53,12 @@ namespace ModConfigMenu
         private ModConfig lastActiveMod = null;
         private Transform lastActiveModRoot = null;
 
-        private Dictionary<string, Transform> ModsRoot = new Dictionary<string, Transform>();
+        private readonly Dictionary<string, Transform> ModsRoot = new Dictionary<string, Transform>();
 
         public void Awake()
         {
             // Gathering the gameSettings to get prefabs.
             var gameSettingsScreen = FindObjectOfType<GameSettingsScreen>(true);
-
-            // Let's find a generic button to modify.
-            //ModButtonPrefab = gameSettingsScreen.transform.Find("Window").Find("Buttons").Find("BtnGeneral").gameObject;
 
             ModListRoot = transform.Find("ModList").Find("ModsScroll").Find("Viewport").Find("Content");
 
@@ -94,9 +92,7 @@ namespace ModConfigMenu
             _resetDefaultButton = ConfigAreaRoot.Find("DefaultButton")?.GetComponent<Button>();
             _resetDefaultButton?.onClick.AddListener(ResetCurrentMod);
 
-            // Load custom tooltip from Assetbundle and instantiate.
-            var tooltipToInstantiate =
-                Importer.LoadFileFromMemory<GameObject>("ModConfigMenu.Resources.mcmassets", "CustomTooltipMessage");
+            var tooltipToInstantiate = Importer.LoadFileFromBundle<GameObject>(Plugin.MCM_FILERESOURCE_FILENAME, "CustomTooltipMessage");
 
             if (tooltipToInstantiate != null)
             {
@@ -131,9 +127,8 @@ namespace ModConfigMenu
                     modButton.name = $"[{modName.Replace(" ", string.Empty)}]";
 
                     var objectButton = modButton.GetComponent<Toggle>();
-                    //objectButton.ChangeLabel(modName);
                     objectButton.GetComponentInChildren<TextMeshProUGUI>().text = modName.ColorFirstLetter(Colors.White);
-                    objectButton.onValueChanged.AddListener((bool selected) =>
+                    objectButton.onValueChanged.AddListener(selected =>
                     {
                         objectButton.transform.Find("Selected").gameObject.SetActive(selected);
                         SwitchToMod(modName);
@@ -145,8 +140,6 @@ namespace ModConfigMenu
                     Logger.LogError($"Could not create UI for mod: {modName}" +
                         $"\n{ex.Message}" +
                         $"\n{ex.StackTrace}");
-
-                    continue;
                 }
             }
         }
@@ -167,9 +160,9 @@ namespace ModConfigMenu
 
         private void ConfigureModButtonPrefab()
         {
-            // Instead of finding a generic button, we create our own.
             ModButtonPrefab = PrefabsRoot.Find("Mod").gameObject;
-            ModButtonPrefab.SetActive(false);
+            ModButtonPrefab.transform.Find("Text").gameObject.AddComponent<FontLanguageSyncronizer>();
+            ModButtonPrefab?.SetActive(false);
         }
 
         private void ConfigureBoolButtonPrefab()
@@ -239,7 +232,7 @@ namespace ModConfigMenu
             stringPrefab?.SetActive(false);
         }
 
-        private void ConfigureLabel(GameObject go, bool hoverable = true)
+        private static void ConfigureLabel(GameObject go, bool hoverable = true)
         {
             if (hoverable)
                 go.AddComponent<GenericHoverTooltip>();
@@ -247,7 +240,7 @@ namespace ModConfigMenu
             ConfigureLocalizableLabel(go.AddComponent<LocalizableLabel>());
         }
 
-        private void ConfigureLocalizableLabel(LocalizableLabel label)
+        private static void ConfigureLocalizableLabel(LocalizableLabel label)
         {
             label._coloredFirstLetter = false;
             label._convertBrToNewLine = false;
@@ -261,11 +254,9 @@ namespace ModConfigMenu
             if (lastActiveModRoot != null && newModRoot.gameObject == lastActiveModRoot.gameObject) return;
             if (lastActiveMod != null && lastActiveMod.IsDirty)
             {
-                // Popup
                 ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
                 UI.Chain<ChangeModConfirmationPanel>().Show();
                 SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
-                // TODO Add Localization here.
                 UI.Get<ChangeModConfirmationPanel>().Configure(
                     "Unsaved Changes".ColorFirstLetter(letterColor),
                     "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
@@ -379,7 +370,7 @@ namespace ModConfigMenu
             _saveButton?.gameObject.SetActive(true);
         }
 
-        private void OnManualTextFocus(bool enable) //(string input, Slider objectSlider, TMP_InputField manualTextComponent)
+        private static void OnManualTextFocus(bool enable)
         {
             SingletonMonoBehaviour<InputController>.Instance.enabled = enable;
             FindObjectOfType<MainMenuGameMode>().enabled = enable;
@@ -403,7 +394,7 @@ namespace ModConfigMenu
             string currentHeader = string.Empty;
 
             // Perform grouping without ordering.
-            var orderedModData = modData.GetData().GroupBy(x => x.Header).ToList().SelectMany(group => group);
+            var orderedModData = modData.GetData().GroupBy(x => x.Header).SelectMany(group => group);
 
             foreach (var currentDatablock in orderedModData)
             {
@@ -563,7 +554,6 @@ namespace ModConfigMenu
 
                 // Label for each object
                 var label = currentDatablock.GetLabel();
-                //instObj.GetComponentInChildren<TextMeshProUGUI>().text = !string.IsNullOrEmpty(label) ? label : currentDatablock.Key;
                 if (!skipLabel && !string.IsNullOrEmpty(label))
                     instObj.GetComponentInChildren<LocalizableLabel>()
                         .ChangeLabel(!string.IsNullOrEmpty(label) ? label : currentDatablock.Key);
@@ -638,7 +628,7 @@ namespace ModConfigMenu
         }
 
         // Helper: instantiate prefab safely
-        private GameObject InstantiatePrefab(GameObject prefab, Transform parent)
+        private static GameObject InstantiatePrefab(GameObject prefab, Transform parent)
         {
             if (prefab == null)
             {
@@ -650,7 +640,7 @@ namespace ModConfigMenu
         }
 
         // Helper: color button configuration
-        private void ConfigureColorButton(GameObject instObj, Color initialColor, bool storeAsString, BaseConfig config)
+        private static void ConfigureColorButton(GameObject instObj, Color initialColor, bool storeAsString, BaseConfig config)
         {
             var button = instObj.GetComponentInChildren<Button>();
             if (button == null) return;
@@ -689,28 +679,6 @@ namespace ModConfigMenu
         }
 
         #endregion
-
-
-        #region Unity Functions
-
-        //public void OnDisable()
-        //{
-        //    if (lastActiveMod != null && lastActiveMod.IsDirty)
-        //    {
-        //        // Popup
-        //        ColorUtility.TryParseHtmlString(DEFAULT_BUTTON_COLOR, out Color letterColor);
-        //        UI.Chain<ChangeModConfirmationPanel>().Show();
-        //        SingletonMonoBehaviour<UI>.Instance._clickOnBackgroundHandler.gameObject.SetActive(false);
-        //        UI.Get<ChangeModConfirmationPanel>().Configure(
-        //            "Unsaved Changes".ColorFirstLetter(letterColor),
-        //            "You still have unsaved changes.\nDo you want to save them before leaving this screen?",
-        //               () => { SaveCurrentMod(); },
-        //            () => { DiscardChanges(); },
-        //            null
-        //        );
-        //    }
-        //}
-
-        #endregion
     }
 }
+#pragma warning restore IDE0130

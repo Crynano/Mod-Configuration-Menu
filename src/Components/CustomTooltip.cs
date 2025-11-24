@@ -1,5 +1,4 @@
 ﻿using MGSC;
-using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -7,10 +6,8 @@ namespace ModConfigMenu.Components
 {
     public class CustomTooltip : MonoBehaviour
     {
-        //private TextMeshProUGUI textBox;
         private LocalizableLabel label;
 
-        private Coroutine AdjustPositionCoroutine;
         private Vector2 _cachedPosition;
 
         void Awake()
@@ -32,7 +29,6 @@ namespace ModConfigMenu.Components
 
         public void Show(Vector2 position, string text)
         {
-            //this.textBox.text = text;
             RegisterComponents();
             label.ChangeLabel(text);
             _cachedPosition = position;
@@ -45,7 +41,7 @@ namespace ModConfigMenu.Components
             transform.position = LimitLabelPositionToScreen(_cachedPosition, ((RectTransform)transform).rect);
         }
 
-        private Vector3 LimitLabelPositionToScreen(Vector2 position, Rect rect)
+        private static Vector3 LimitLabelPositionToScreen(Vector2 position, Rect rect)
         {
             var goodHeight = rect.height * 4f;
             position.y = Mathf.Clamp(position.y, goodHeight, Screen.height);
