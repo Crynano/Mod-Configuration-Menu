@@ -31,7 +31,6 @@ namespace ModConfigMenu
         private GameObject ModButtonPrefab;
 
         private Transform ModListRoot;
-        private Transform ConfigAreaRoot;
         private Transform PrefabsRoot;
         private Transform ContentRoot;
 
@@ -46,9 +45,7 @@ namespace ModConfigMenu
         private GameObject headerPrefab;
         private GameObject rootPrefab;
 
-        private CommonButton _backButton;
         private Button _saveButton;
-        private Button _resetDefaultButton;
 
         private ModConfig lastActiveMod = null;
         private Transform lastActiveModRoot = null;
@@ -62,7 +59,7 @@ namespace ModConfigMenu
 
             ModListRoot = transform.Find("ModList").Find("ModsScroll").Find("Viewport").Find("Content");
 
-            ConfigAreaRoot = transform.Find("ConfigArea");
+            var ConfigAreaRoot = transform.Find("ConfigArea");
             PrefabsRoot = ConfigAreaRoot.Find("Prefabs");
             ContentRoot = ConfigAreaRoot.Find("ContentRoot");
 
@@ -74,23 +71,37 @@ namespace ModConfigMenu
             ConfigureDropdownPrefab();
             ConfigureStringPrefab();
 
-            rootPrefab = ConfigAreaRoot.Find("Prefabs").Find("Root").gameObject;
+            rootPrefab = PrefabsRoot.Find("Root").gameObject;
             rootPrefab.SetActive(false);
-            headerPrefab = ConfigAreaRoot.Find("Prefabs").Find("Header").gameObject;
+
+            headerPrefab = PrefabsRoot.Find("Header").gameObject;
             ConfigureLabel(headerPrefab.transform.Find("Label").gameObject, false);
             headerPrefab.SetActive(false);
 
-            // We have back button solved.
             var bbPrefab = gameSettingsScreen.transform.Find("BackButton");
-            _backButton = GameObject.Instantiate(bbPrefab, transform).GetComponent<CommonButton>();
+            var _backButton = GameObject.Instantiate(bbPrefab, transform).GetComponent<CommonButton>();
             if (_backButton != null)
                 _backButton.OnClick += delegate { UI.Back(); };
 
             _saveButton = ConfigAreaRoot.Find("SaveButton")?.GetComponent<Button>();
-            _saveButton?.onClick.AddListener(SaveCurrentMod);
+            if (_saveButton is null)
+            {
+                Debug.LogError("SaveButton for MCM is missing.");
+            }
+            else
+            {
+                _saveButton?.onClick.AddListener(SaveCurrentMod);
+            }
 
-            _resetDefaultButton = ConfigAreaRoot.Find("DefaultButton")?.GetComponent<Button>();
-            _resetDefaultButton?.onClick.AddListener(ResetCurrentMod);
+            var _resetDefaultButton = ConfigAreaRoot.Find("DefaultButton")?.GetComponent<Button>();
+            if (_resetDefaultButton is null)
+            {
+                Debug.LogError("ResetButton for MCM is missing.");
+            }
+            else
+            {
+                _resetDefaultButton.onClick.AddListener(ResetCurrentMod);
+            }
 
             var tooltipToInstantiate = Importer.LoadFileFromBundle<GameObject>(Plugin.MCM_FILERESOURCE_FILENAME, "CustomTooltipMessage");
 

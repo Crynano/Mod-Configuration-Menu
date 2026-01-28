@@ -76,7 +76,7 @@ namespace ModConfigMenu
             }
             else if (path.Contains(nameof(ChangeModConfirmationPanel)))
             {
-                var saveModConfirmPanel = Importer.LoadFileFromBundle<GameObject>(MCM_FILERESOURCE_FILENAME, "ColorPickerRoot");
+                var saveModConfirmPanel = Importer.LoadFileFromBundle<GameObject>(MCM_FILERESOURCE_FILENAME, "SaveModConfirmPanel");
                 saveModConfirmPanel.AddComponent<ChangeModConfirmationPanel>();
                 saveModConfirmPanel.gameObject.SetActive(false);
                 return saveModConfirmPanel;
