@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-973459537061212906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f22bb7fd1d3b56a48bc52f8e407901d6, type: 3}
+  m_Name: ManifestIdentity
+  m_EditorClassIdentifier: 
+  StagingPaths: []
+  Author: Crynano
+  Name: Mod Configuration Menu
+  Description: A mod configuration menu for Quasimorph
+  Version: 0.3.1
+  Dependencies: []
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e563561e08b6a3642a487177f5cfbb37, type: 3}
+  m_Name: MCMManifest
+  m_EditorClassIdentifier: 
+  Data:
+  - {fileID: -973459537061212906}
+  - {fileID: 4391994838286067430}
+  identity: {fileID: -973459537061212906}
+  QuickAccess: 1
+--- !u!114 &4391994838286067430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17d1008b78cb6e846889b7778282fbef, type: 3}
+  m_Name: AssetBundleDefinitions
+  m_EditorClassIdentifier: 
+  StagingPaths:
+  - <MCMBuildPath>
+  assetBundles:
+  - assetBundleName: MCMAssets
+    assets:
+    - {fileID: 2189086619481283258, guid: c269e6fe03e6fe64bb4c6ef85d328031, type: 3}
+    - {fileID: 719673401966842402, guid: 1fa51b3af8ef0cd4c82597d80e51a7f3, type: 3}
+    - {fileID: 719673401966842402, guid: dc1b2e9b9ff28bf4780ee8db31a33d15, type: 3}
+    - {fileID: 719673401966842402, guid: cd0bd352675c09e40b4c02c6b4b4553b, type: 3}

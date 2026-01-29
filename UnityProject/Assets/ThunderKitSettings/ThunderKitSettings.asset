@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9057f7f601990a4883b2cb295c4f43e, type: 3}
+  m_Name: ThunderKitSettings
+  m_EditorClassIdentifier: 
+  FirstLoad: 0
+  ShowOnStartup: 0
+  GameExecutable: Quasimorph.exe
+  GamePath: D:\SteamLibrary\steamapps\common\Quasimorph
+  Is64Bit: 1
+  DateTimeFormat: HH:mm:ss:fff
+  CreatedDateFormat: dd/MMM at HH:mm:ss
+  ShowLogWindow: 1
+  LogPackageSourceTimings: 0
+  GenerateAssetsProject: 0
+  FixLocalDiskPackages: 0
+  ImageCachePath: Library/MarkdownImageCache
+  CachedImageCount: 0
+  CacheSize: 0
+  MarkdownOpenMode: 1
+  SelectedPipeline: {fileID: 11400000, guid: fc0d123358fec294c8cb8f106c875384, type: 2}
+  SelectedManifest: {fileID: 11400000, guid: bc60bc6990d2d48479104d5a7f8e4d86, type: 2}
+  QuickAccessPipelines:
+  - {fileID: 11400000, guid: f86d4ddb97c432545a13ddbb52477700, type: 2}
+  QuickAccessManifests:
+  - {fileID: 11400000, guid: bc60bc6990d2d48479104d5a7f8e4d86, type: 2}
+  ImportConfiguration: {fileID: 11400000, guid: cb423f8772514e44f9cd8752519380fe, type: 2}
